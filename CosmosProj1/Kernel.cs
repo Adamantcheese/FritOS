@@ -17,7 +17,11 @@ namespace CosmosProj1
             SYSTEM_DATE = new Date();
             FILESYS = new List<File>();
             GLOBAL_VARS = new List<Variable>();
-            Console.WriteLine("Cosmos booted successfully.");
+            Console.WriteLine(" _|_|_|_|            _|    _|        _|_|      _|_|_|");
+            Console.WriteLine(" _|        _|  _|_|      _|_|_|_|  _|    _|  _|");
+            Console.WriteLine(" _|_|_|    _|_|      _|    _|      _|    _|    _|_|");
+            Console.WriteLine(" _|        _|        _|    _|      _|    _|        _|");
+            Console.WriteLine(" _|        _|        _|      _|_|    _|_|    _|_|_|");
         }
 
         protected override void Run()
@@ -364,7 +368,7 @@ namespace CosmosProj1
             {
                 if (temp[i].getName() == args)
                 {
-                    output += temp[i].getVal().ToString();
+                    output += temp[i].toString();
                 }
             }
             if (output.Length == 0)
@@ -382,7 +386,7 @@ namespace CosmosProj1
             Console.WriteLine("---------------------------");
             for (int i = 0; i < GLOBAL_VARS.Count; i++)
             {
-                Console.WriteLine(temp[i].getName().PadRight(15) + ' ' + temp[i].getVal().ToString());
+                Console.WriteLine(temp[i].getName().PadRight(15) + ' ' + temp[i].toString());
             }
         }
 
@@ -408,20 +412,37 @@ namespace CosmosProj1
             String varname = input.Substring(0, endIndex);
             String expr = input.Substring(varname.Length + 1).Trim();
             varname = varname.Trim();
-            //turn expr into a string or int or double
-            String val = "ass"; //TODOODODODODODODOODODODODOODODOODODOODODOODODODOODODODOODODODODOO
+            String val = "\"\""; 
+            //TODOODODODODODODOODODODODOODODOODODOODODOODODODOODODODOODODODODOO
+
+
+            //NIKKO I NEED A METHOD HERE THAT TAKES IN AN EXPRESSION expr
+            //AND IT SPITS OUT A STRING
+
+
+            //string variables are return with surrounding double quotes
+            //double variables have a period in them
+            //int variables are default
+
+            //IT WILL DEFAULT TO BEING AN EMPTY STRING VARIABLE BY THE WAY
+
+
+
             //put the variable into the list of globals
-            Variable v = new Variable(varname, val);
-            Variable[] temp = new Variable[GLOBAL_VARS.Count];
-            GLOBAL_VARS.CopyTo(temp);
-            for (int i = 0; i < GLOBAL_VARS.Count; i++)
+            Variable v = null;
+            if (val.Contains("\""))
             {
-                if (temp[i].getName() == varname)
-                {
-                    GLOBAL_VARS.RemoveAt(i);
-                    break;
-                }
+                v = new Variable(varname, val.Substring(1, val.Length - 2));
             }
+            else if (val.Contains("."))
+            {
+                v = new Variable(varname, Double.Parse(val));
+            }
+            else
+            {
+                v = new Variable(varname, Int32.Parse(val));
+            }
+            clr(varname);
             GLOBAL_VARS.Add(v);
         }
 
