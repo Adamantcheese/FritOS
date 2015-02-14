@@ -41,6 +41,11 @@ namespace CosmosProj1
             }
             String func = input.Substring(0, endIndex + 1).Trim();
             String args = input.Substring(func.Length).Trim();
+            execute(func, args);
+        }
+
+        public void execute(String func, String args)
+        {
             //Based on the function, call the appropriate built in method with arguments
             if (func == "help")
             {
@@ -90,9 +95,18 @@ namespace CosmosProj1
             }
             else
             {
-                parseInput(func + args);
+                String input = func + args;
+                if (input.Contains("="))
+                {
+                    parseInput(input);
+                }
+                else
+                {
+                    Console.WriteLine(input);
+                }
             }
         }
+
         //DOS time and date functions, functional except for setting time/date (prints out new time/date, but doesn't set it)
         public void time(String args)
         {
@@ -403,6 +417,7 @@ namespace CosmosProj1
             if (input.IndexOf('=') < 0)
             {
                 Console.WriteLine("Invalid expression.");
+                Console.WriteLine("Usage: <VARNAME> = <EXPR>");
                 return;
             }
             else
@@ -412,6 +427,12 @@ namespace CosmosProj1
             String varname = input.Substring(0, endIndex);
             String expr = input.Substring(varname.Length + 1).Trim();
             varname = varname.Trim();
+            if (varname.Length == 0 || expr.Length == 0)
+            {
+                Console.WriteLine("Error: Variable name doesn't exist or expression doesn't exist.");
+                Console.WriteLine("Usage: <VARNAME> = <EXPR>");
+                return;
+            }
             String val = "\"\""; 
             //TODOODODODODODODOODODODODOODODOODODOODODOODODODOODODODOODODODODOO
 
@@ -420,8 +441,7 @@ namespace CosmosProj1
             //AND IT SPITS OUT A STRING
 
 
-            //string variables are return with surrounding double quotes
-            //double variables have a period in them
+            //string variables are enclosed with surrounding double quotes
             //int variables are default
 
             //IT WILL DEFAULT TO BEING AN EMPTY STRING VARIABLE BY THE WAY
@@ -433,10 +453,6 @@ namespace CosmosProj1
             if (val.Contains("\""))
             {
                 v = new Variable(varname, val.Substring(1, val.Length - 2));
-            }
-            else if (val.Contains("."))
-            {
-                v = new Variable(varname, Double.Parse(val));
             }
             else
             {
@@ -557,5 +573,31 @@ namespace CosmosProj1
             }
             return -1;
         }
+
+        private Variable getVar(String n)
+        {
+            Variable[] temp = new Variable[GLOBAL_VARS.Count];
+            GLOBAL_VARS.CopyTo(temp);
+            for (int i = 0; i < GLOBAL_VARS.Count; i++)
+            {
+                if (temp[i].getName() == n)
+                {
+                    return temp[i];
+                }
+            }
+            return null;
+        }
+
+        /*private String stringToOther(String expr)
+        {
+            //Check if it can be converted to either double or int,
+            //if it can, return as is
+            double num;
+            int num2;
+            if (Int32.TryParse(expr, out num2))
+                return expr;
+            //Return the string with quotes around it
+            return "\"" + expr + "\"";
+        }*/
     }
 }
