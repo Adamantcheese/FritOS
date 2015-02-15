@@ -433,22 +433,12 @@ namespace CosmosProj1
                 Console.WriteLine("Usage: <VARNAME> = <EXPR>");
                 return;
             }
-            String val = "\"\""; 
-            //TODOODODODODODODOODODODODOODODOODODOODODOODODODOODODODOODODODODOO
-
-
-            //NIKKO I NEED A METHOD HERE THAT TAKES IN AN EXPRESSION expr
-            //AND IT SPITS OUT A STRING
-
-
-            //string variables are enclosed with surrounding double quotes
-            //int variables are default
-
-            //IT WILL DEFAULT TO BEING AN EMPTY STRING VARIABLE BY THE WAY
-
-
-
-            //put the variable into the list of globals
+            String val = evalExpr(expr);
+            if (val == null)
+            {
+                Console.WriteLine("Unable to parse expression.");
+                return;
+            }
             Variable v = null;
             if (val.Contains("\""))
             {
@@ -588,16 +578,295 @@ namespace CosmosProj1
             return null;
         }
 
-        /*private String stringToOther(String expr)
+        private String evalExpr(String expr)
         {
-            //Check if it can be converted to either double or int,
-            //if it can, return as is
-            double num;
-            int num2;
-            if (Int32.TryParse(expr, out num2))
-                return expr;
-            //Return the string with quotes around it
-            return "\"" + expr + "\"";
-        }*/
+            List<Char> operations = new List<Char>();
+            Char[] delim = new Char[] { '+', '-', '*', '/', '&', '|', '^' };
+            //This line takes care of saving the arguments
+            String[] arguments = expr.Split(delim, StringSplitOptions.RemoveEmptyEntries);
+            //This loop takes care of saving the operations
+            foreach (char ch in expr)
+            {
+                foreach (char de in delim)
+                {
+                    if (ch == de)
+                    {
+                        operations.Add(de);
+                        break;
+                    }
+                }
+            }
+            //First, check each entry [delimited by +, -, *, /, &, |, ^]
+            //If everything is a number, it's arithmetic.
+            if (isAllInt(arguments))
+                return arithmeticOp(arguments, operations);
+            //String only
+            //A var should begin with $
+            //String should be enclosed in double quotations
+            Char[] ops = new Char[operations.Count];
+            operations.CopyTo(ops);
+            foreach (Char c in ops)
+            {
+                if (c == '-' || c == '*' || c == '/' || c == '&' || c == '|' || c == '^')
+                {
+                    Console.WriteLine("Only concatenation (+) is a valid string operator.");
+                    return null;
+                }
+            }
+            return stringOp(arguments);
+        }
+
+        //Helper for expression evaluation
+        //Returns true if all Strings in the array are "ints"
+        //if the string was a variable name, checks to see if the data stored
+        //is an int
+        private bool isAllInt(String[] terms)
+        {
+            //If any of the terms cannot be converted to int,
+            //They are not all strings
+            int helper;
+            foreach (String term in terms)
+            {
+                //If the term is a variable [denoted by $],
+                //Check all the stored variables.
+                if (term[0] == '$')
+                {
+                    bool found = false;
+                    foreach (Variable v in GLOBAL_VARS)
+                    {
+                        //If a variable matched and it was not type int
+                        if (v.toString() == term.Substring(1))
+                            if (v.getType() != 2)
+                                return false;
+                            else
+                            {
+                                found = true;
+                                break;
+                            }
+                    }
+                    if (!found)
+                        return false;
+                }
+                else if (!int.TryParse(term, out helper))
+                    return false;
+            }
+            return true;
+        }
+
+        //Helper for expression evaluation
+        //Returns true if all Strings in the array are "ints"
+        //Supported operators are +, -, *, /, &, |, ^
+        private String arithmeticOp(String[] terms, List<Char> oprs)
+        {
+            Stack<Int32> operands = new Stack<Int32>();
+            Stack<Char> operators = new Stack<Char>();
+            Char[] ops = oprs.ToArray();
+            Int16 termIndex = 0, opIndex = 0;
+            String term = terms[termIndex];
+            Char op = ops[opIndex];
+            //Number helps if we're reading a number or an operator.
+            bool done = false, number = true;
+            while (!done)
+            {
+                //We're reading a value.
+                if (number)
+                {
+                    //There won't be any errors because "term" went through
+                    //a preliminary check
+                    operands.Push(Convert.ToInt32(term));
+                    if (++termIndex == terms.Length)
+                        done = true;
+                    else
+                        term = terms[termIndex];
+                    number = false;
+                }
+                else //We're reading a number
+                {
+                    //If operator stack is empty, push operator
+                    if (operators.Count == 0)
+                    {
+                        operators.Push(op);
+                        if (++opIndex < ops.Length)
+                        {
+                            op = ops[opIndex];
+                            number = true;
+                            continue;
+                        }
+                    }
+                    Char toperator = operators.Peek();
+                    switch (op)
+                    {
+                        case '*':
+                        case '/':
+                            if (toperator != '*' && toperator != '/')
+                                operators.Push(op);
+                            else
+                            {
+                                if (operands.Count < 2)
+                                {
+                                    Console.WriteLine("Invalid expression entered. Not enough operands.");
+                                    return null;
+                                }
+                                else
+                                {
+                                    //May overflow.
+                                    Int32 op2 = Convert.ToInt32(operands.Pop()), op1 = Convert.ToInt32(operands.Pop()), result;
+                                    if (toperator == '*')
+                                        result = op1 * op2;
+                                    else
+                                        result = op1 / op2;
+                                    operands.Push(result);
+                                    operators.Pop();
+                                    operators.Push(op);
+                                }
+                            }
+                            break;
+                        case '+':
+                        case '-':
+                            if (toperator == '&' || toperator == '|' || toperator == '^')
+                                operators.Push(op);
+                            else
+                            {
+                                if (operands.Count < 2)
+                                {
+                                    Console.WriteLine("Invalid expression entered. Not enough operands.");
+                                    return null;
+                                }
+                                else
+                                {
+                                    Int32 op2 = Convert.ToInt32(operands.Pop()), op1 = Convert.ToInt32(operands.Pop()), result;
+                                    if (toperator == '+')
+                                        result = op1 + op2;
+                                    else if (toperator == '-')
+                                        result = op1 - op2;
+                                    else if (toperator == '*')
+                                        result = op1 * op2;
+                                    else
+                                        result = op1 / op2;
+                                    operands.Push(result);
+                                    operators.Pop();
+                                    operators.Push(op);
+                                }
+                            }
+                            break;
+                        case '&':
+                        case '|':
+                        case '^':
+                            if (operands.Count < 2)
+                            {
+                                Console.WriteLine("Invalid expression entered. Not enough operands.");
+                                return "";
+                            }
+                            else
+                            {
+                                Int32 op2 = Convert.ToInt32(operands.Pop()), op1 = Convert.ToInt32(operands.Pop()), result;
+                                if (toperator == '&')
+                                    result = op1 & op2;
+                                else if (toperator == '|')
+                                    result = op1 | op2;
+                                else if (toperator == '^')
+                                    result = op1 ^ op2;
+                                else if (toperator == '+')
+                                    result = op1 + op2;
+                                else if (toperator == '-')
+                                    result = op1 - op2;
+                                else if (toperator == '*')
+                                    result = op1 * op2;
+                                else
+                                    result = op1 / op2;
+                                operands.Push(result);
+                                operators.Pop();
+                                operators.Push(op);
+                            }
+                            break;
+                    }
+                    if (++opIndex < ops.Length)
+                    {
+                        op = ops[opIndex];
+                        number = true;
+                    }
+                }
+            }
+            while (operators.Count != 0)
+            {
+                if (operands.Count < 2)
+                {
+                    Console.WriteLine("Invalid expression entered. Not enough operands.");
+                    return null;
+                }
+                else
+                {
+                    Char toperator = operators.Peek();
+                    Int32 op2 = Convert.ToInt32(operands.Pop()), op1 = Convert.ToInt32(operands.Pop()), result;
+                    if (toperator == '&')
+                        result = op1 & op2;
+                    else if (toperator == '|')
+                        result = op1 | op2;
+                    else if (toperator == '^')
+                        result = op1 ^ op2;
+                    else if (toperator == '+')
+                        result = op1 + op2;
+                    else if (toperator == '-')
+                        result = op1 - op2;
+                    else if (toperator == '*')
+                        result = op1 * op2;
+                    else
+                        result = op1 / op2;
+                    operands.Push(result);
+                    operators.Pop();
+                }
+            }
+            if (operands.Count > 1)
+            {
+                Console.WriteLine("Invalid expression entered. Not enough operators.");
+                return null;
+            }
+            return operands.Pop().ToString();
+        }
+
+        //Helper for expression evaluation
+        //Returns the string arrays concatenated
+        //Also replaces variable names
+        private String stringOp(String[] terms)
+        {
+            String bigString = "\"";
+            foreach (String term in terms)
+            {
+                //If the term is a variable [denoted by $],
+                //Check all the stored variables.
+                if (term[0] == '$')
+                {
+                    bool found = false;
+                    foreach (Variable v in GLOBAL_VARS)
+                    {
+                        //If a variable matched and it was not type string
+                        if (v.toString() == term.Substring(1))
+                            if (v.getType() != 1)
+                            {
+                                Console.Write("The specified variable ");
+                                Console.Write(term);
+                                Console.Write(" is not type string");
+                                return null;
+                            }
+                            else
+                            {
+                                found = true;
+                                break;
+                            }
+                    }
+                    if (!found)
+                    {
+                        Console.Write("The specified variable ");
+                        Console.Write(term);
+                        Console.Write(" cannot be found");
+                        return null;
+                    }
+                    bigString += term;
+                }
+                else
+                    bigString += term;
+            }
+            return bigString + "\"";
+        }
     }
 }

@@ -11,7 +11,7 @@ namespace CosmosProj1
         private String name = "";
         private String val1 = "";
         private Int32 val2 = Int32.MinValue;
-        private int valType = -1;
+        private Int32 valType = -1;
 
         public Variable(String s, String val)
         {
@@ -50,6 +50,11 @@ namespace CosmosProj1
         public Int32 getIntVal()
         {
             return val2;
+        }
+
+        public Int32 getType()
+        {
+            return valType;
         }
 
         public String toString()
