@@ -69,5 +69,52 @@ namespace CosmosProj1
                     return null;
             }
         }
+
+        private void castToStr()
+        {
+            if (valType == 1)
+            {
+                Console.WriteLine("Variable is already type string.");
+            }
+            else
+            {
+                val1 = val2.ToString();
+                val2 = Int32.MinValue;
+                valType = 1;
+            }
+        }
+
+        private void castToInt()
+        {
+            if (valType == 2)
+            {
+                Console.WriteLine("Variable is already type integer");
+            }
+            else
+            {
+                try
+                {
+                    val2 = Int32.Parse(val1);
+                    val1 = "";
+                    valType = 2;
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Unable to convert current value " + val1 + " to type integer.");
+                }
+            }
+        }
+
+        public void cast()
+        {
+            if (valType == 1)
+            {
+                castToInt();
+            }
+            else
+            {
+                castToStr();
+            }
+        }
     }
 }

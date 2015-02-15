@@ -91,7 +91,11 @@ namespace CosmosProj1
             }
             else if (func == "clr")
             {
-                clr(args);
+                clr(args, true);
+            }
+            else if (func == "varCast")
+            {
+                varCast(args);
             }
             else
             {
@@ -299,6 +303,7 @@ namespace CosmosProj1
             Console.WriteLine("rm");
             Console.WriteLine("clr");
             Console.WriteLine("help");
+            Console.WriteLine("varCast");
             Console.WriteLine("Global variables may be input with: ");
             Console.WriteLine("<VARNAME> = <ARITHMETIC EXPR>");
             Console.WriteLine("<VARNAME> = <STRING EXPR");
@@ -448,7 +453,7 @@ namespace CosmosProj1
             {
                 v = new Variable(varname, Int32.Parse(val));
             }
-            clr(varname);
+            clr(varname, false);
             GLOBAL_VARS.Add(v);
         }
 
@@ -469,7 +474,7 @@ namespace CosmosProj1
             }
         }
 
-        public void clr(String args)
+        public void clr(String args, bool verbose)
         {
             if (args.Split(' ').Length - 1 > 0)
             {
@@ -486,7 +491,20 @@ namespace CosmosProj1
                     return;
                 }
             }
-            Console.WriteLine("No such variable exists.");
+            if (verbose) {
+                Console.WriteLine("No such variable exists.");
+            }
+        }
+
+        public void varCast(String args)
+        {
+            if (args.Split(' ').Length - 1 > 0)
+            {
+                Console.WriteLine("Usage: varCast <VARNAME>");
+                return;
+            }
+            Variable v = getVar(args);
+            v.cast();
         }
 
         //Displays bytes as pairs of two digits 0-9. Used only for printing the time.
@@ -625,18 +643,20 @@ namespace CosmosProj1
             //If any of the terms cannot be converted to int,
             //They are not all strings
             int helper;
-            foreach (String term in terms)
+            for (int j = 0; j < terms.Length; j++)
             {
                 //If the term is a variable [denoted by $],
                 //Check all the stored variables.
-                if (term[0] == '$')
+                if (terms[j][0] == '$')
                 {
                     bool found = false;
-                    foreach (Variable v in GLOBAL_VARS)
+                    Variable[] temp = new Variable[GLOBAL_VARS.Count];
+                    GLOBAL_VARS.CopyTo(temp);
+                    for (int i = 0; i < GLOBAL_VARS.Count; i++)
                     {
                         //If a variable matched and it was not type int
-                        if (v.toString() == term.Substring(1))
-                            if (v.getType() != 2)
+                        if (temp[i].toString() == terms[j].Substring(1))
+                            if (temp[i].getType() != 2)
                                 return false;
                             else
                             {
@@ -647,8 +667,15 @@ namespace CosmosProj1
                     if (!found)
                         return false;
                 }
-                else if (!int.TryParse(term, out helper))
-                    return false;
+                else
+                    try
+                    {
+                        Int32.Parse(terms[j]);
+                    }
+                    catch (Exception e)
+                    {
+                        return false;
+                    }
             }
             return true;
         }
@@ -673,7 +700,7 @@ namespace CosmosProj1
                 {
                     //There won't be any errors because "term" went through
                     //a preliminary check
-                    operands.Push(Convert.ToInt32(term));
+                    operands.Push(Int32.Parse(term));
                     if (++termIndex == terms.Length)
                         done = true;
                     else
@@ -710,7 +737,7 @@ namespace CosmosProj1
                                 else
                                 {
                                     //May overflow.
-                                    Int32 op2 = Convert.ToInt32(operands.Pop()), op1 = Convert.ToInt32(operands.Pop()), result;
+                                    Int32 op2 = operands.Pop(), op1 = operands.Pop(), result;
                                     if (toperator == '*')
                                         result = op1 * op2;
                                     else
@@ -734,7 +761,7 @@ namespace CosmosProj1
                                 }
                                 else
                                 {
-                                    Int32 op2 = Convert.ToInt32(operands.Pop()), op1 = Convert.ToInt32(operands.Pop()), result;
+                                    Int32 op2 = operands.Pop(), op1 = operands.Pop(), result;
                                     if (toperator == '+')
                                         result = op1 + op2;
                                     else if (toperator == '-')
@@ -759,7 +786,7 @@ namespace CosmosProj1
                             }
                             else
                             {
-                                Int32 op2 = Convert.ToInt32(operands.Pop()), op1 = Convert.ToInt32(operands.Pop()), result;
+                                Int32 op2 = operands.Pop(), op1 = operands.Pop(), result;
                                 if (toperator == '&')
                                     result = op1 & op2;
                                 else if (toperator == '|')
@@ -797,7 +824,7 @@ namespace CosmosProj1
                 else
                 {
                     Char toperator = operators.Peek();
-                    Int32 op2 = Convert.ToInt32(operands.Pop()), op1 = Convert.ToInt32(operands.Pop()), result;
+                    Int32 op2 = operands.Pop(), op1 = operands.Pop(), result;
                     if (toperator == '&')
                         result = op1 & op2;
                     else if (toperator == '|')
@@ -830,22 +857,24 @@ namespace CosmosProj1
         private String stringOp(String[] terms)
         {
             String bigString = "\"";
-            foreach (String term in terms)
+            for (int j = 0; j < terms.Length; j++)
             {
                 //If the term is a variable [denoted by $],
                 //Check all the stored variables.
-                if (term[0] == '$')
+                if (terms[j][0] == '$')
                 {
                     bool found = false;
-                    foreach (Variable v in GLOBAL_VARS)
+                    Variable[] temp = new Variable[GLOBAL_VARS.Count];
+                    GLOBAL_VARS.CopyTo(temp);
+                    for (int i = 0; i < GLOBAL_VARS.Count; i++)
                     {
                         //If a variable matched and it was not type string
-                        if (v.toString() == term.Substring(1))
-                            if (v.getType() != 1)
+                        if (temp[i].toString() == terms[j].Substring(1))
+                            if (temp[i].getType() != 1)
                             {
                                 Console.Write("The specified variable ");
-                                Console.Write(term);
-                                Console.Write(" is not type string");
+                                Console.Write(terms[j]);
+                                Console.Write(" is not type string.");
                                 return null;
                             }
                             else
@@ -857,14 +886,14 @@ namespace CosmosProj1
                     if (!found)
                     {
                         Console.Write("The specified variable ");
-                        Console.Write(term);
-                        Console.Write(" cannot be found");
+                        Console.Write(terms[j]);
+                        Console.Write(" cannot be found.");
                         return null;
                     }
-                    bigString += term;
+                    bigString += terms[j];
                 }
                 else
-                    bigString += term;
+                    bigString += terms[j];
             }
             return bigString + "\"";
         }
