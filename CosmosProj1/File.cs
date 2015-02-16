@@ -65,7 +65,9 @@ namespace CosmosProj1
             {
                 return "No line exists at that index!";
             }
-            return lines.ElementAt(i);
+            String[] temp = new String[lines.Count];
+            lines.CopyTo(temp);
+            return temp[i];
         }
     }
 }

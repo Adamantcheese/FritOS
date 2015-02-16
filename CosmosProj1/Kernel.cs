@@ -82,8 +82,7 @@ namespace CosmosProj1
             }
             else if (func == "run")
             {
-                int res = run(args);
-                Console.WriteLine("Run returned code: " + res);
+                run(args);
             }
             else if (func == "rm")
             {
@@ -99,7 +98,7 @@ namespace CosmosProj1
             }
             else
             {
-                String input = func + args;
+                String input = func + ' ' + args;
                 if (input.Contains("="))
                 {
                     parseInput(input);
@@ -409,10 +408,36 @@ namespace CosmosProj1
             }
         }
 
-        public int run(String args)
+        public void run(String args)
         {
-            Console.WriteLine("Not supported yet!");
-            return -1;
+            if (args.IndexOf('.') < 0 || args.Split(' ').Length - 1 > 0)
+            {
+                Console.WriteLine("Usage: run <Filename>.bat");
+                return;
+            }
+            File f = getFile(args);
+            if (f.getExtension() != "bat")
+            {
+                Console.WriteLine("Usage: run <Filename>.bat");
+                return;
+            }
+            for (int i = 0; i < f.getLineCount(); i++)
+            {
+                String line = f.readLine(i).Trim();
+                //Cut the input into a function call and arguments
+                int endIndex = 0;
+                if (line.IndexOf(' ') < 0)
+                {
+                    endIndex = line.Length - 1;
+                }
+                else
+                {
+                    endIndex = line.IndexOf(' ');
+                }
+                String func = line.Substring(0, endIndex + 1).Trim();
+                String arguments = line.Substring(func.Length).Trim();
+                execute(func, arguments);
+            }
         }
 
         public void parseInput(String input)
@@ -580,6 +605,13 @@ namespace CosmosProj1
                 }
             }
             return -1;
+        }
+
+        private File getFile(String fname)
+        {
+            File[] temp = new File[FILESYS.Count];
+            FILESYS.CopyTo(temp);
+            return temp[getFileIndex(fname)];
         }
 
         private Variable getVar(String n)
