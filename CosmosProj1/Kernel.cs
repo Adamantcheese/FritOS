@@ -649,23 +649,18 @@ namespace CosmosProj1
                 //Check all the stored variables.
                 if (terms[j][0] == '$')
                 {
-                    bool found = false;
-                    Variable[] temp = new Variable[GLOBAL_VARS.Count];
-                    GLOBAL_VARS.CopyTo(temp);
-                    for (int i = 0; i < GLOBAL_VARS.Count; i++)
+                    Variable v = getVar(terms[j].Substring(1));
+                    if (v != null)
                     {
-                        //If a variable matched and it was not type int
-                        if (temp[i].toString() == terms[j].Substring(1))
-                            if (temp[i].getType() != 2)
-                                return false;
-                            else
-                            {
-                                found = true;
-                                break;
-                            }
+                        if (v.getType() != 2)
+                        {
+                            return false;
+                        }
                     }
-                    if (!found)
+                    else
+                    {
                         return false;
+                    }
                 }
                 else if (!isValidInt(terms[j]))
                 {
@@ -858,28 +853,19 @@ namespace CosmosProj1
                 //Check all the stored variables.
                 if (terms[j][0] == '$')
                 {
-                    bool found = false;
-                    Variable[] temp = new Variable[GLOBAL_VARS.Count];
-                    GLOBAL_VARS.CopyTo(temp);
-                    for (int i = 0; i < GLOBAL_VARS.Count; i++)
+                    Variable v = getVar(terms[j].Substring(1));
+                    if (v != null)
                     {
-                        //If a variable matched and it was not type string
-                        if (temp[i].toString() == terms[j].Substring(1))
-                            if (temp[i].getType() != 1)
-                            {
-                                Console.Write("The specified variable ");
-                                Console.Write(terms[j].Substring(1));
-                                Console.Write(" is not type string.");
-                                Console.WriteLine();
-                                return null;
-                            }
-                            else
-                            {
-                                found = true;
-                                break;
-                            }
+                        if (v.getType() != 1)
+                        {
+                            Console.Write("The specified variable ");
+                            Console.Write(terms[j].Substring(1));
+                            Console.Write(" is not type string.");
+                            Console.WriteLine();
+                            return null;
+                        }
                     }
-                    if (!found)
+                    else
                     {
                         Console.Write("The specified variable ");
                         Console.Write(terms[j].Substring(1));
@@ -887,7 +873,7 @@ namespace CosmosProj1
                         Console.WriteLine();
                         return null;
                     }
-                    bigString += terms[j];
+                    bigString += v.toString();
                 }
                 else
                     bigString += terms[j];
