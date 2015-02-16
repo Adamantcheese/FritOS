@@ -617,8 +617,10 @@ namespace CosmosProj1
             //First, check each entry [delimited by +, -, *, /, &, |, ^]
             //If everything is a number, it's arithmetic.
             if (isAllInt(arguments))
+            {
                 arguments = substitute(arguments);
                 return arithmeticOp(arguments, operations);
+            }
             //String only
             //A var should begin with $
             //String should be enclosed in double quotations
