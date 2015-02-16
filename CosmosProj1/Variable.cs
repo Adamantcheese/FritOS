@@ -92,13 +92,13 @@ namespace CosmosProj1
             }
             else
             {
-                try
+                if (Kernel.isValidInt(val1))
                 {
                     val2 = Int32.Parse(val1);
                     val1 = "";
                     valType = 2;
                 }
-                catch (Exception e)
+                else
                 {
                     Console.WriteLine("Unable to convert current value " + val1 + " to type integer.");
                 }

@@ -599,7 +599,7 @@ namespace CosmosProj1
         private String evalExpr(String expr)
         {
             List<Char> operations = new List<Char>();
-            Char[] delim = new Char[] { '+', '-', '*', '/', '&', '|', '^' };
+            Char[] delim = new Char[] {'+', '-', '*', '/', '&', '|', '^'};
             //This line takes care of saving the arguments
             String[] arguments = expr.Split(delim, StringSplitOptions.RemoveEmptyEntries);
             //This loop takes care of saving the operations
@@ -621,6 +621,8 @@ namespace CosmosProj1
             //String only
             //A var should begin with $
             //String should be enclosed in double quotations
+            Char[] strDelim = new Char[] { '+', '-', '*', '/', '&', '|', '^', ' '};
+            arguments = expr.Split(strDelim, StringSplitOptions.RemoveEmptyEntries);
             Char[] ops = new Char[operations.Count];
             operations.CopyTo(ops);
             foreach (Char c in ops)
@@ -667,15 +669,10 @@ namespace CosmosProj1
                     if (!found)
                         return false;
                 }
-                else
-                    try
-                    {
-                        Int32.Parse(terms[j]);
-                    }
-                    catch (Exception e)
-                    {
-                        return false;
-                    }
+                else if (!isValidInt(terms[j]))
+                {
+                    return false;
+                }
             }
             return true;
         }
@@ -875,6 +872,7 @@ namespace CosmosProj1
                                 Console.Write("The specified variable ");
                                 Console.Write(terms[j]);
                                 Console.Write(" is not type string.");
+                                Console.WriteLine();
                                 return null;
                             }
                             else
@@ -887,7 +885,8 @@ namespace CosmosProj1
                     {
                         Console.Write("The specified variable ");
                         Console.Write(terms[j]);
-                        Console.Write(" cannot be found.");
+                        Console.Write(" cannot be found.\n");
+                        Console.WriteLine();
                         return null;
                     }
                     bigString += terms[j];
@@ -896,6 +895,45 @@ namespace CosmosProj1
                     bigString += terms[j];
             }
             return bigString + "\"";
+        }
+
+        public static bool isValidInt(String s)
+        {
+            Char[] nums = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
+            Char[] str = s.ToCharArray();
+            if (str[0] != '-' || str[0] != '+')
+            {
+                bool first = false;
+                for (int i = 0; i < nums.Length; i++)
+                {
+                    if (str[0] == nums[i])
+                    {
+                        first = true;
+                        break;
+                    }
+                }
+                if (!first)
+                {
+                    return false;
+                }
+            }
+            for (int i = 1; i < str.Length; i++)
+            {
+                bool isCurCharValid = false;
+                for (int j = 0; j < nums.Length; j++)
+                {
+                    if (str[i] == nums[j])
+                    {
+                        isCurCharValid = true;
+                        break;
+                    }
+                }
+                if (!isCurCharValid)
+                {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 }
