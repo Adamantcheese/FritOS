@@ -617,6 +617,7 @@ namespace CosmosProj1
             //First, check each entry [delimited by +, -, *, /, &, |, ^]
             //If everything is a number, it's arithmetic.
             if (isAllInt(arguments))
+                arguments = substitute(arguments);
                 return arithmeticOp(arguments, operations);
             //String only
             //A var should begin with $
@@ -642,7 +643,6 @@ namespace CosmosProj1
         {
             //If any of the terms cannot be converted to int,
             //They are not all strings
-            int helper;
             for (int j = 0; j < terms.Length; j++)
             {
                 //If the term is a variable [denoted by $],
@@ -679,36 +679,27 @@ namespace CosmosProj1
             Stack<Char> operators = new Stack<Char>();
             Char[] ops = oprs.ToArray();
             Int16 termIndex = 0, opIndex = 0;
-            String term = terms[termIndex];
             Char op = ops[opIndex];
             //Number helps if we're reading a number or an operator.
-            bool done = false, number = true;
-            while (!done)
+            for (int i = 0; i < terms.Length + ops.Length; i++)
             {
                 //We're reading a value.
-                if (number)
+                if (i % 2 == 0)
                 {
                     //There won't be any errors because "term" went through
                     //a preliminary check
-                    operands.Push(Int32.Parse(term));
-                    if (++termIndex == terms.Length)
-                        done = true;
-                    else
-                        term = terms[termIndex];
-                    number = false;
+                    //Also, I'm assuming the loop will end on reading an operand
+                    //due to all operators being binary.
+                    operands.Push(Int32.Parse(terms[termIndex++]));
                 }
-                else //We're reading a number
+                else //We're reading an operator
                 {
                     //If operator stack is empty, push operator
                     if (operators.Count == 0)
                     {
                         operators.Push(op);
-                        if (++opIndex < ops.Length)
-                        {
-                            op = ops[opIndex];
-                            number = true;
-                            continue;
-                        }
+                        op = ops[++opIndex];
+                        continue;
                     }
                     Char toperator = operators.Peek();
                     switch (op)
@@ -721,6 +712,7 @@ namespace CosmosProj1
                             {
                                 if (operands.Count < 2)
                                 {
+                                    Console.WriteLine("* /");
                                     Console.WriteLine("Invalid expression entered. Not enough operands.");
                                     return null;
                                 }
@@ -746,6 +738,7 @@ namespace CosmosProj1
                             {
                                 if (operands.Count < 2)
                                 {
+                                    Console.WriteLine("+ -");
                                     Console.WriteLine("Invalid expression entered. Not enough operands.");
                                     return null;
                                 }
@@ -771,8 +764,9 @@ namespace CosmosProj1
                         case '^':
                             if (operands.Count < 2)
                             {
+                                Console.WriteLine("& | ^");
                                 Console.WriteLine("Invalid expression entered. Not enough operands.");
-                                return "";
+                                return null;
                             }
                             else
                             {
@@ -800,7 +794,6 @@ namespace CosmosProj1
                     if (++opIndex < ops.Length)
                     {
                         op = ops[opIndex];
-                        number = true;
                     }
                 }
             }
@@ -918,6 +911,28 @@ namespace CosmosProj1
                 }
             }
             return true;
+        }
+
+        //Substitution method for arithmetic expression evaluation
+        //Takes arguments and converts variable names to appropriate numbers
+        private String[] substitute(String[] args)
+        {
+            String[] ret = new String[args.Length];
+            for (int i = 0; i < args.Length; i++)
+            {
+                //If the term is a variable [denoted by $],
+                //Check all the stored variables.
+                if (args[i][0] == '$')
+                {
+                    Variable v = getVar(args[i].Substring(1));
+                    ret[i] = v.toString();
+                }
+                else
+                {
+                    ret[i] = args[i];
+                }
+            }
+            return ret;
         }
 
         //Used for debugging only
