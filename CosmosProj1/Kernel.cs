@@ -599,7 +599,7 @@ namespace CosmosProj1
         private String evalExpr(String expr)
         {
             List<Char> operations = new List<Char>();
-            Char[] delim = new Char[] {'+', '-', '*', '/', '&', '|', '^'};
+            Char[] delim = new Char[] {'+', '-', '*', '/', '&', '|', '^', ' '};
             //This line takes care of saving the arguments
             String[] arguments = expr.Split(delim, StringSplitOptions.RemoveEmptyEntries);
             //This loop takes care of saving the operations
@@ -607,7 +607,7 @@ namespace CosmosProj1
             {
                 foreach (char de in delim)
                 {
-                    if (ch == de)
+                    if (ch == de && ch != ' ')
                     {
                         operations.Add(de);
                         break;
@@ -621,8 +621,6 @@ namespace CosmosProj1
             //String only
             //A var should begin with $
             //String should be enclosed in double quotations
-            Char[] strDelim = new Char[] { '+', '-', '*', '/', '&', '|', '^', ' '};
-            arguments = expr.Split(strDelim, StringSplitOptions.RemoveEmptyEntries);
             Char[] ops = new Char[operations.Count];
             operations.CopyTo(ops);
             foreach (Char c in ops)
@@ -870,7 +868,7 @@ namespace CosmosProj1
                             if (temp[i].getType() != 1)
                             {
                                 Console.Write("The specified variable ");
-                                Console.Write(terms[j]);
+                                Console.Write(terms[j].Substring(1));
                                 Console.Write(" is not type string.");
                                 Console.WriteLine();
                                 return null;
@@ -884,8 +882,8 @@ namespace CosmosProj1
                     if (!found)
                     {
                         Console.Write("The specified variable ");
-                        Console.Write(terms[j]);
-                        Console.Write(" cannot be found.\n");
+                        Console.Write(terms[j].Substring(1));
+                        Console.Write(" cannot be found.");
                         Console.WriteLine();
                         return null;
                     }
@@ -904,7 +902,7 @@ namespace CosmosProj1
             if (str[0] != '-' || str[0] != '+')
             {
                 bool first = false;
-                for (int i = 0; i < nums.Length; i++)
+                for (int i = 1; i < nums.Length; i++)
                 {
                     if (str[0] == nums[i])
                     {
@@ -934,6 +932,22 @@ namespace CosmosProj1
                 }
             }
             return true;
+        }
+
+        //Used for debugging only
+        public static void printArray(String[] arr)
+        {
+            Console.Write("{");
+            for (int i = 0; i < arr.Length; i++)
+            {
+                Console.Write(arr[i]);
+                if (i < arr.Length - 1)
+                {
+                    Console.Write(", ");
+                }
+            }
+            Console.Write("}");
+            Console.WriteLine();
         }
     }
 }
