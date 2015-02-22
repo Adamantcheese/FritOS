@@ -8,6 +8,7 @@ namespace CosmosProj1
 {
     public class Kernel : Sys.Kernel
     {
+        public const String SYSTEM_VERSION = "0.3.1";
         public Date SYSTEM_DATE;
         public List<File> FILESYS;
         public List<Variable> GLOBAL_VARS;
@@ -24,6 +25,7 @@ namespace CosmosProj1
             Console.WriteLine(" _|_|_|    _|_|      _|    _|      _|    _|    _|_|");
             Console.WriteLine(" _|        _|        _|    _|      _|    _|        _|");
             Console.WriteLine(" _|        _|        _|      _|_|    _|_|    _|_|_|");
+            Console.WriteLine("FritOS: Freakin' Rad Input Terminal OS, version " + SYSTEM_VERSION);
         }
 
         protected override void Run()
@@ -402,11 +404,12 @@ namespace CosmosProj1
         {
             Variable[] temp = new Variable[GLOBAL_VARS.Count];
             GLOBAL_VARS.CopyTo(temp);
-            Console.WriteLine("Variable Name   Value");
-            Console.WriteLine("---------------------------");
+            Console.WriteLine("Variable Name   Type Value");
+            Console.WriteLine("-------------------------------");
             for (int i = 0; i < GLOBAL_VARS.Count; i++)
             {
-                Console.WriteLine(temp[i].getName().PadRight(15) + ' ' + temp[i].toString());
+                String type = temp[i].getTypeStr();
+                Console.WriteLine(temp[i].getName().PadRight(15) + ' ' + type + ' ' + temp[i].toString());
             }
         }
 

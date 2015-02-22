@@ -57,6 +57,18 @@ namespace CosmosProj1
             return valType;
         }
 
+        public String getTypeStr()
+        {
+            if (valType == 1)
+            {
+                return "str ";
+            }
+            else
+            {
+                return "int ";
+            }
+        }
+
         public String toString()
         {
             switch (valType)
