@@ -11,12 +11,14 @@ namespace CosmosProj1
         public Date SYSTEM_DATE;
         public List<File> FILESYS;
         public List<Variable> GLOBAL_VARS;
+        public List<String> RUNNING_BATCH_FILES;
 
         protected override void BeforeRun()
         {
             SYSTEM_DATE = new Date();
             FILESYS = new List<File>();
             GLOBAL_VARS = new List<Variable>();
+            RUNNING_BATCH_FILES = new List<String>();
             Console.WriteLine(" _|_|_|_|            _|    _|        _|_|      _|_|_|");
             Console.WriteLine(" _|        _|  _|_|      _|_|_|_|  _|    _|  _|");
             Console.WriteLine(" _|_|_|    _|_|      _|    _|      _|    _|    _|_|");
@@ -421,6 +423,12 @@ namespace CosmosProj1
                 Console.WriteLine("Usage: run <Filename>.bat");
                 return;
             }
+            else if (runningContainsBatch(f.getFileName()))
+            {
+                Console.WriteLine("Error: Recursive run call detected. Stopping.");
+                return;
+            }
+            RUNNING_BATCH_FILES.Add(f.getFileName());
             for (int i = 0; i < f.getLineCount(); i++)
             {
                 String line = f.readLine(i).Trim();
@@ -438,6 +446,7 @@ namespace CosmosProj1
                 String arguments = line.Substring(func.Length).Trim();
                 execute(func, arguments);
             }
+            removeBatch(f.getFileName());
         }
 
         public void parseInput(String input)
@@ -967,6 +976,35 @@ namespace CosmosProj1
                 }
             }
             return ret;
+        }
+
+        private bool runningContainsBatch(String fname)
+        {
+            String[] temp = new String[RUNNING_BATCH_FILES.Count];
+            RUNNING_BATCH_FILES.CopyTo(temp);
+            for (int i = 0; i < RUNNING_BATCH_FILES.Count; i++)
+            {
+                if (temp[i] == fname)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private void removeBatch(String fname)
+        {
+            String[] temp = new String[RUNNING_BATCH_FILES.Count];
+            RUNNING_BATCH_FILES.CopyTo(temp);
+            List<String> final = new List<String>();
+            for (int i = 0; i < RUNNING_BATCH_FILES.Count; i++)
+            {
+                if (temp[i] != fname)
+                {
+                    final.Add(temp[i]);
+                }
+            }
+            RUNNING_BATCH_FILES = final;
         }
 
         //Used for debugging only
