@@ -8,7 +8,7 @@ namespace CosmosProj1
 {
     public class Kernel : Sys.Kernel
     {
-        public const String SYSTEM_VERSION = "0.3.1";
+        public const String SYSTEM_VERSION = "0.3.2";
         public Date SYSTEM_DATE;
         public List<File> FILESYS;
         public List<Variable> GLOBAL_VARS;
@@ -475,6 +475,11 @@ namespace CosmosProj1
                 Console.WriteLine("Usage: <VARNAME> = <EXPR>");
                 return;
             }
+            else if (!isValidVarName(varname))
+            {
+                Console.WriteLine("Error: Variable name invalid, may only contain A-Z, a-z, 0-9, _, and $.");
+                return;
+            }
             String val = evalExpr(expr);
             if (val == null)
             {
@@ -482,7 +487,7 @@ namespace CosmosProj1
                 return;
             }
             Variable v = null;
-            if (val.Contains("\""))
+            if (val[0] == '\"')
             {
                 v = new Variable(varname, val.Substring(1, val.Length - 2));
             }
@@ -668,8 +673,18 @@ namespace CosmosProj1
             //String only
             //A var should begin with $
             //String should be enclosed in double quotations
-            Char[] ops = new Char[operations.Count];
-            operations.CopyTo(ops);
+            arguments = splitStrExpr(expr);
+            Char[] ops = splitOpsStrExpr(expr);
+            if (ops == null || arguments == null)
+            {
+                Console.WriteLine("Invalid expression.");
+                return null;
+            }
+            if (ops.Length != (arguments.Length - 1))
+            {
+                Console.WriteLine("Invalid expression: incorrect number of operators.");
+                return null;
+            }
             foreach (Char c in ops)
             {
                 if (c == '-' || c == '*' || c == '/' || c == '&' || c == '|' || c == '^')
@@ -1010,20 +1025,152 @@ namespace CosmosProj1
             RUNNING_BATCH_FILES = final;
         }
 
-        //Used for debugging only
-        public static void printArray(String[] arr)
+        public static String[] splitStrExpr(String expr)
         {
-            Console.Write("{");
-            for (int i = 0; i < arr.Length; i++)
+            bool isString = false;
+            bool isVar = false;
+            List<String> output = new List<String>();
+            String temp = "";
+            for (int i = 0; i < expr.Length; i++)
             {
-                Console.Write(arr[i]);
-                if (i < arr.Length - 1)
+                if (isString && isVar)
                 {
-                    Console.Write(", ");
+                    return null;
+                }
+                else if (isString && !isVar)
+                {
+                    if (expr[i] == '\"')
+                    {
+                        isString = false;
+                        output.Add(temp);
+                        temp = "";
+                    }
+                    else
+                    {
+                        temp += expr[i];
+                    }
+                }
+                else if (!isString && isVar)
+                {
+                    if (expr[i] == '+' || expr[i] == '-' || expr[i] == '*' || expr[i] == '/' || expr[i] == '&' || expr[i] == '|' || expr[i] == '^' || expr[i] == ' ')
+                    {
+                        isVar = false;
+                        output.Add(temp);
+                        temp = "";
+                    }
+                    else
+                    {
+                        temp += expr[i];
+                    }
+                }
+                else if (!isString && !isVar)
+                {
+                    if (expr[i] == '\"')
+                    {
+                        isString = true;
+                    }
+                    else if (expr[i] == '$')
+                    {
+                        isVar = true;
+                        temp += expr[i];
+                    }
+                    else
+                    {
+                        if (expr[i] != '+' && expr[i] != '-' && expr[i] != '*' && expr[i] != '/' && expr[i] != '&' && expr[i] != '|' && expr[i] != '^' && expr[i] != ' ')
+                        {
+                            return null;
+                        }
+                    }
                 }
             }
-            Console.Write("}");
-            Console.WriteLine();
+            if (isVar)
+            {
+                output.Add(temp);
+            }
+            String[] outVars = new String[output.Count];
+            output.CopyTo(outVars);
+            return outVars;
+        }
+
+        private static Char[] splitOpsStrExpr(String expr)
+        {
+            bool isString = false;
+            bool isVar = false;
+            List<Char> output = new List<Char>();
+            for (int i = 0; i < expr.Length; i++)
+            {
+                if (isString && isVar)
+                {
+                    return null;
+                }
+                else if (isString && !isVar)
+                {
+                    if (expr[i] == '\"')
+                    {
+                        isString = false;
+                    }
+                }
+                else if (!isString && isVar)
+                {
+                    if (expr[i] == '+' || expr[i] == '-' || expr[i] == '*' || expr[i] == '/' || expr[i] == '&' || expr[i] == '|' || expr[i] == '^' || expr[i] == ' ')
+                    {
+                        isVar = false;
+                    }
+                }
+                else if (!isString && !isVar)
+                {
+                    if(expr[i] == '\"') {
+                        isString = true;
+                    }
+                    else if (expr[i] == '$')
+                    {
+                        isVar = true;
+                    }
+                    else
+                    {
+                        if (expr[i] != '+' && expr[i] != '-' && expr[i] != '*' && expr[i] != '/' && expr[i] != '&' && expr[i] != '|' && expr[i] != '^' && expr[i] != ' ')
+                        {
+                            return null;
+                        }
+                        else
+                        {
+                            if (expr[i] != ' ')
+                            {
+                                output.Add(expr[i]);
+                            }
+                        }
+                    }
+                }
+            }
+            Char[] temp = new Char[output.Count];
+            output.CopyTo(temp);
+            return temp;
+        }
+
+        private static bool isValidVarName(String name)
+        {
+            Char[] valid = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'
+            , 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V'
+            , 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'
+            , 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v'
+            , 'w', 'x', 'y', 'z', '_', '$', '0', '1', '2', '3', '4', '5', '6'
+            , '7', '8', '9'};
+            for (int i = 0; i < name.Length; i++)
+            {
+                bool yes = false;
+                for (int j = 0; j < valid.Length; j++)
+                {
+                    if (name[i] == valid[j])
+                    {
+                        yes = true;
+                    }
+                }
+                if (!yes)
+                {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 }
