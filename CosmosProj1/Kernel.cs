@@ -8,7 +8,7 @@ namespace CosmosProj1
 {
     public class Kernel : Sys.Kernel
     {
-        public const String SYSTEM_VERSION = "0.3.2";
+        public const String SYSTEM_VERSION = "0.4.1";
         public Date SYSTEM_DATE;
         public List<File> FILESYS;
         public List<Variable> GLOBAL_VARS;
@@ -26,6 +26,8 @@ namespace CosmosProj1
             Console.WriteLine(" _|        _|        _|    _|      _|    _|        _|");
             Console.WriteLine(" _|        _|        _|      _|_|    _|_|    _|_|_|");
             Console.WriteLine("FritOS: Freakin' Rad Input Terminal OS, version " + SYSTEM_VERSION);
+            Console.WriteLine();
+            Console.WriteLine();
         }
 
         protected override void Run()
@@ -95,7 +97,7 @@ namespace CosmosProj1
             }
             else if (func == "set" || func == "shared")
             {
-                parseInput(func + ' ' + args);
+                parseInput(args);
             }
             else
             {
@@ -333,6 +335,10 @@ namespace CosmosProj1
                         rm(args);
                         break;
                     }
+                    else
+                    {
+                        Console.WriteLine("Invalid option. Overwrite file? (Y/N)");
+                    }
                 }
             }
             File f = new File(args);
@@ -431,7 +437,7 @@ namespace CosmosProj1
                     }
                     else if (runningContainsBatch(f.getFileName()))
                     {
-                        Console.WriteLine("Error: Recursive run call detected. Stopping.");
+                        Console.WriteLine("Error: Recursive and/or duplicate run call detected. Stopping to prevent possible infinite loop.");
                         return;
                     }
                     maximumLines = f.getLineCount() > maximumLines ? f.getLineCount() : maximumLines;
@@ -466,7 +472,7 @@ namespace CosmosProj1
                 }
                 else if (runningContainsBatch(f.getFileName()))
                 {
-                    Console.WriteLine("Error: Recursive run call detected. Stopping.");
+                    Console.WriteLine("Error: Recursive run call detected. Stopping to prevent possible infinite loop.");
                     return;
                 }
                 RUNNING_BATCH_FILES.Add(f.getFileName());
