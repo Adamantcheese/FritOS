@@ -63,7 +63,7 @@ namespace CosmosProj1
         {
             if (i < 0 || i > lines.Count)
             {
-                return "No line exists at that index!";
+                return "";
             }
             String[] temp = new String[lines.Count];
             lines.CopyTo(temp);

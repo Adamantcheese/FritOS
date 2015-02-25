@@ -33,25 +33,18 @@ namespace CosmosProj1
             //Print out a marker and get input
             Console.Write("usr:/ > ");
             String input = Console.ReadLine().Trim();
-            //Cut the input into a function call and arguments
-            int endIndex = 0;
-            if (input.IndexOf(' ') < 0)
-            {
-                endIndex = input.Length - 1;
-            }
-            else
-            {
-                endIndex = input.IndexOf(' ');
-            }
-            String func = input.Substring(0, endIndex + 1).Trim();
-            String args = input.Substring(func.Length).Trim();
-            execute(func, args);
+            String[] command = splitCommand(input);
+            execute(command[0], command[1]);
         }
 
         public void execute(String func, String args)
         {
             //Based on the function, call the appropriate built in method with arguments
-            if (func == "help")
+            if (func == "")
+            {
+                return;
+            }
+            else if (func == "help")
             {
                 help();
             }
@@ -100,6 +93,10 @@ namespace CosmosProj1
             {
                 varCast(args);
             }
+            else if (func == "set" || func == "shared")
+            {
+                parseInput(func + ' ' + args);
+            }
             else
             {
                 String input = func + ' ' + args;
@@ -109,7 +106,7 @@ namespace CosmosProj1
                 }
                 else
                 {
-                    Console.WriteLine(input);
+                    Console.WriteLine("Invalid command.");
                 }
             }
         }
@@ -307,6 +304,8 @@ namespace CosmosProj1
             Console.WriteLine("clr");
             Console.WriteLine("help");
             Console.WriteLine("varCast");
+            Console.WriteLine("set");
+            Console.WriteLine("shared");
             Console.WriteLine("Global variables may be input with: ");
             Console.WriteLine("<VARNAME> = <ARITHMETIC EXPR>");
             Console.WriteLine("<VARNAME> = <STRING EXPR");
@@ -415,41 +414,76 @@ namespace CosmosProj1
 
         public void run(String args)
         {
-            if (args.IndexOf('.') < 0 || args.Split(' ').Length - 1 > 0)
+            String[] arguments = args.Split(new Char[] {' '}, StringSplitOptions.RemoveEmptyEntries);
+            if (arguments[0] == "all" && arguments.Length > 1)
             {
-                Console.WriteLine("Usage: run <Filename>.bat");
-                return;
-            }
-            File f = getFile(args);
-            if (f.getExtension() != "bat")
-            {
-                Console.WriteLine("Usage: run <Filename>.bat");
-                return;
-            }
-            else if (runningContainsBatch(f.getFileName()))
-            {
-                Console.WriteLine("Error: Recursive run call detected. Stopping.");
-                return;
-            }
-            RUNNING_BATCH_FILES.Add(f.getFileName());
-            for (int i = 0; i < f.getLineCount(); i++)
-            {
-                String line = f.readLine(i).Trim();
-                //Cut the input into a function call and arguments
-                int endIndex = 0;
-                if (line.IndexOf(' ') < 0)
+                //run all batches here
+                //check all arguments and also get the maximum line length of any batch files given
+                //also flag all batches as being run
+                int maximumLines = 0;
+                for (int i = 1; i < arguments.Length; i++)
                 {
-                    endIndex = line.Length - 1;
+                    File f = getFile(arguments[i]);
+                    if (f == null || f.getExtension() != "bat")
+                    {
+                        Console.WriteLine("Usage: run <Filename>.bat");
+                        return;
+                    }
+                    else if (runningContainsBatch(f.getFileName()))
+                    {
+                        Console.WriteLine("Error: Recursive run call detected. Stopping.");
+                        return;
+                    }
+                    maximumLines = f.getLineCount() > maximumLines ? f.getLineCount() : maximumLines;
+                    RUNNING_BATCH_FILES.Add(f.getFileName());
                 }
-                else
+                //run all batch files
+                for (int i = 0; i < maximumLines; i++)
                 {
-                    endIndex = line.IndexOf(' ');
+                    for (int j = 1; j < arguments.Length; j++)
+                    {
+                        File f = getFile(arguments[j]);
+                        String line = f.readLine(i).Trim();
+                        String[] command = splitCommand(line);
+                        execute(command[0], command[1]);
+                    }
                 }
-                String func = line.Substring(0, endIndex + 1).Trim();
-                String arguments = line.Substring(func.Length).Trim();
-                execute(func, arguments);
+                //remove all batches from the running processes
+                for (int i = 1; i < arguments.Length; i++)
+                {
+                    File f = getFile(arguments[i]);
+                    removeBatch(f.getFileName());
+                }
             }
-            removeBatch(f.getFileName());
+            else if (arguments.Length == 1)
+            {
+                //run a single batch here
+                File f = getFile(arguments[0]);
+                if (f == null || f.getExtension() != "bat")
+                {
+                    Console.WriteLine("Usage: run <Filename>.bat");
+                    return;
+                }
+                else if (runningContainsBatch(f.getFileName()))
+                {
+                    Console.WriteLine("Error: Recursive run call detected. Stopping.");
+                    return;
+                }
+                RUNNING_BATCH_FILES.Add(f.getFileName());
+                for (int i = 0; i < f.getLineCount(); i++)
+                {
+                    String line = f.readLine(i).Trim();
+                    String[] command = splitCommand(line);
+                    execute(command[0], command[1]);
+                }
+                removeBatch(f.getFileName());
+            }
+            else
+            {
+                Console.WriteLine("Error: incorrect number of arguments given to run.");
+                Console.WriteLine("Usage: run [all] <fname>.bat [<fname>.bat <fname>.bat ...]");
+                return;
+            }
         }
 
         public void parseInput(String input)
@@ -628,7 +662,11 @@ namespace CosmosProj1
         {
             File[] temp = new File[FILESYS.Count];
             FILESYS.CopyTo(temp);
-            return temp[getFileIndex(fname)];
+            int index = getFileIndex(fname);
+            if (index == -1) {
+                return null;
+            }
+            return temp[index];
         }
 
         private Variable getVar(String n)
@@ -1171,6 +1209,24 @@ namespace CosmosProj1
                 }
             }
             return true;
+        }
+
+        private static String[] splitCommand(String input)
+        {
+            String[] output = new String[2];
+            //Cut the input into a function call and arguments
+            int endIndex = 0;
+            if (input.IndexOf(' ') < 0)
+            {
+                endIndex = input.Length - 1;
+            }
+            else
+            {
+                endIndex = input.IndexOf(' ');
+            }
+            output[0] = input.Substring(0, endIndex + 1).Trim();
+            output[1] = input.Substring(output[0].Length).Trim();
+            return output;
         }
     }
 }
