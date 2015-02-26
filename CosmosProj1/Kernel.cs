@@ -8,7 +8,7 @@ namespace CosmosProj1
 {
     public class Kernel : Sys.Kernel
     {
-        public const String SYSTEM_VERSION = "0.4.2";
+        public const String SYSTEM_VERSION = "0.4.3";
         public Date SYSTEM_DATE;
         public List<File> FILESYS;
         public List<Variable> GLOBAL_VARS;
@@ -27,7 +27,7 @@ namespace CosmosProj1
             Console.WriteLine(" _|        _|        _|      _|_|    _|_|    _|_|_|");
             Console.WriteLine("FritOS: Freakin' Rad Input Terminal OS, version " + SYSTEM_VERSION);
             Console.WriteLine();
-            Console.WriteLine();
+            Console.WriteLine("Type \"help\" for a listing of all currently implemented commands.");
         }
 
         protected override void Run()
