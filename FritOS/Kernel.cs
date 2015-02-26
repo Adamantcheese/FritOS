@@ -28,6 +28,14 @@ namespace CosmosProj1
             Console.WriteLine("FritOS: Freakin' Rad Input Terminal OS, version " + SYSTEM_VERSION);
             Console.WriteLine();
             Console.WriteLine("Type \"help\" for a listing of all currently implemented commands.");
+            File f = new File("f.bat");
+            f.writeLine("create a.bat");
+            f.writeLine("var1 = 1");
+            f.writeLine("save ");
+            f.writeLine("create b.bat");
+            f.writeLine("var2 = 2");
+            f.writeLine("save ");
+            FILESYS.Add(f);
         }
 
         protected override void Run()
@@ -431,6 +439,7 @@ namespace CosmosProj1
                 for (int i = 1; i < arguments.Length; i++)
                 {
                     File f = getFile(arguments[i]);
+                    batchesToRun[i - 1] = f;
                     if (f == null || f.getExtension() != "bat")
                     {
                         Console.WriteLine("Usage: run <Filename>.bat");
@@ -443,11 +452,15 @@ namespace CosmosProj1
                     }
                     maximumLines = f.getLineCount() > maximumLines ? f.getLineCount() : maximumLines;
                     RUNNING_BATCH_FILES.Add(f.getFileName());
-                    batchesToRun[i - 1] = f;
                 }
                 //run all batch files
                 Stack<String>[] batchTempFNames = new Stack<String>[batchesToRun.Length];
                 Queue<String>[] batchTempLines = new Queue<String>[batchesToRun.Length];
+                for (int i = 0; i < batchesToRun.Length; i++)
+                {
+                    batchTempFNames[i] = new Stack<String>();
+                    batchTempLines[i] = new Queue<String>();
+                }
                 for (int i = 0; i < maximumLines; i++)
                 {
                     for (int j = 0; j < batchesToRun.Length; j++)
@@ -463,7 +476,7 @@ namespace CosmosProj1
                             }
                             batchTempFNames[j].Push(command[1]);
                         }
-                        else if (batchTempFNames[j].Count > 0) 
+                        else if (batchTempFNames[j].Count > 0)
                         {
                             if (line == "save")
                             {
