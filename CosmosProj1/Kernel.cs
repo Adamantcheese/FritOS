@@ -8,7 +8,7 @@ namespace CosmosProj1
 {
     public class Kernel : Sys.Kernel
     {
-        public const String SYSTEM_VERSION = "0.4.1";
+        public const String SYSTEM_VERSION = "0.4.2";
         public Date SYSTEM_DATE;
         public List<File> FILESYS;
         public List<Variable> GLOBAL_VARS;
