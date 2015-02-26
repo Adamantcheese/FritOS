@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
 VisualStudioVersion = 12.0.30723.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FritOS", "CosmosProj1\FritOS.csproj", "{0D8FA427-A1C5-408D-9B07-87FB3AC6FA02}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FritOS", "FritOS\FritOS.csproj", "{0D8FA427-A1C5-408D-9B07-87FB3AC6FA02}"
 EndProject
-Project("{471EC4BB-E47E-4229-A789-D1F5F83B52D4}") = "FritOSBoot", "CosmosProj1\FritOSBoot.Cosmos", "{F3D62797-10C8-4AE2-9037-2AABABF4EF59}"
+Project("{471EC4BB-E47E-4229-A789-D1F5F83B52D4}") = "FritOSBoot", "FritOS\FritOSBoot.Cosmos", "{F3D62797-10C8-4AE2-9037-2AABABF4EF59}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -423,6 +423,7 @@ namespace CosmosProj1
             String[] arguments = args.Split(new Char[] {' '}, StringSplitOptions.RemoveEmptyEntries);
             if (arguments[0] == "all" && arguments.Length > 1)
             {
+                File[] batchesToRun = new File[arguments.Length - 1];
                 //run all batches here
                 //check all arguments and also get the maximum line length of any batch files given
                 //also flag all batches as being run
@@ -442,19 +443,43 @@ namespace CosmosProj1
                     }
                     maximumLines = f.getLineCount() > maximumLines ? f.getLineCount() : maximumLines;
                     RUNNING_BATCH_FILES.Add(f.getFileName());
+                    batchesToRun[i - 1] = f;
                 }
                 //run all batch files
+                Stack<String>[] batchTempFNames = new Stack<String>[batchesToRun.Length];
+                Queue<String>[] batchTempLines = new Queue<String>[batchesToRun.Length];
                 for (int i = 0; i < maximumLines; i++)
                 {
-                    for (int j = 1; j < arguments.Length; j++)
+                    for (int j = 0; j < batchesToRun.Length; j++)
                     {
-                        File f = getFile(arguments[j]);
-                        String line = f.readLine(i).Trim();
+                        String line = batchesToRun[j].readLine(i).Trim();
                         String[] command = splitCommand(line);
                         if (command[0] == "create")
                         {
-                            Console.WriteLine("Writing files inside of batch inside of 'run all' is currently unsupported. Proceeding manually.");
-                            execute(command[0], command[1]);
+                            if (command.Length != 2 || command[1].IndexOf('.') < 0)
+                            {
+                                Console.WriteLine("Error: create takes a filename argument in the form <fname>.<ext>");
+                                return;
+                            }
+                            batchTempFNames[j].Push(command[1]);
+                        }
+                        else if (batchTempFNames[j].Count > 0) 
+                        {
+                            if (line == "save")
+                            {
+                                File file = new File(batchTempFNames[j].Pop());
+                                while (batchTempLines[j].Count != 0)
+                                {
+                                    //This keeps VMware from shitting itself
+                                    Console.Write("");
+                                    file.writeLine(batchTempLines[j].Dequeue());
+                                }
+                                FILESYS.Add(file);
+                            }
+                            else
+                            {
+                                batchTempLines[j].Enqueue(line);
+                            }
                         }
                         else
                         {
@@ -463,10 +488,9 @@ namespace CosmosProj1
                     }
                 }
                 //remove all batches from the running processes
-                for (int i = 1; i < arguments.Length; i++)
+                for (int i = 0; i < batchesToRun.Length; i++)
                 {
-                    File f = getFile(arguments[i]);
-                    removeBatch(f.getFileName());
+                    removeBatch(batchesToRun[i].getFileName());
                 }
             }
             else if (arguments.Length == 1)
@@ -506,6 +530,8 @@ namespace CosmosProj1
                             File file = new File(tempFNames.Pop());
                             while(tempLines.Count != 0)
                             {
+                                //This keeps VMware from shitting itself
+                                Console.Write("");
                                 file.writeLine(tempLines.Dequeue());
                             }
                             FILESYS.Add(file);

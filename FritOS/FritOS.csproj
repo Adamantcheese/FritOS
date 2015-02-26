@@ -8,8 +8,8 @@
     <ProjectGuid>{0D8FA427-A1C5-408D-9B07-87FB3AC6FA02}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>CosmosProj1</RootNamespace>
-    <AssemblyName>CosmosProj1</AssemblyName>
+    <RootNamespace>FritOS</RootNamespace>
+    <AssemblyName>FritOS</AssemblyName>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
   </PropertyGroup>
