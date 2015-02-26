@@ -347,7 +347,7 @@ namespace CosmosProj1
             while (true)
             {
                 Console.Write(i + "> ");
-                String input = Console.ReadLine().Trim();
+                String input = Console.ReadLine();
                 if (input == "save")
                 {
                     break;
@@ -451,7 +451,15 @@ namespace CosmosProj1
                         File f = getFile(arguments[j]);
                         String line = f.readLine(i).Trim();
                         String[] command = splitCommand(line);
-                        execute(command[0], command[1]);
+                        if (command[0] == "create")
+                        {
+                            Console.WriteLine("Writing files inside of batch inside of 'run all' is currently unsupported. Proceeding manually.");
+                            execute(command[0], command[1]);
+                        }
+                        else
+                        {
+                            execute(command[0], command[1]);
+                        }
                     }
                 }
                 //remove all batches from the running processes
@@ -476,11 +484,41 @@ namespace CosmosProj1
                     return;
                 }
                 RUNNING_BATCH_FILES.Add(f.getFileName());
+                Stack<String> tempFNames = new Stack<String>();
+                Queue<String> tempLines = new Queue<String>();
                 for (int i = 0; i < f.getLineCount(); i++)
                 {
                     String line = f.readLine(i).Trim();
                     String[] command = splitCommand(line);
-                    execute(command[0], command[1]);
+                    if (command[0] == "create")
+                    {
+                        if (command.Length != 2 || command[1].IndexOf('.') < 0)
+                        {
+                            Console.WriteLine("Error: create takes a filename argument in the form <fname>.<ext>");
+                            return;
+                        }
+                        tempFNames.Push(command[1]);
+                    }
+                    else if (tempFNames.Count > 0)
+                    {
+                        if (line == "save")
+                        {
+                            File file = new File(tempFNames.Pop());
+                            while(tempLines.Count != 0)
+                            {
+                                file.writeLine(tempLines.Dequeue());
+                            }
+                            FILESYS.Add(file);
+                        }
+                        else
+                        {
+                            tempLines.Enqueue(line);
+                        }
+                    }
+                    else
+                    {
+                        execute(command[0], command[1]);
+                    }
                 }
                 removeBatch(f.getFileName());
             }
