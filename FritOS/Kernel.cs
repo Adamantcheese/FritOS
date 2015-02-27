@@ -36,6 +36,13 @@ namespace CosmosProj1
             f.writeLine("var2 = 2");
             f.writeLine("save ");
             FILESYS.Add(f);
+            File d = new File("d.bat");
+            d.writeLine("create a.bat");
+            d.writeLine("var1 = 1");
+            d.writeLine("save ");
+            d.writeLine("create b.bat");
+            d.writeLine("var2 = 2");
+            FILESYS.Add(d);
         }
 
         protected override void Run()
@@ -56,7 +63,7 @@ namespace CosmosProj1
             }
             else if (func == "help")
             {
-                help();
+                help(args);
             }
             else if (func == "time")
             {
@@ -299,26 +306,103 @@ namespace CosmosProj1
             Console.Clear();
         }
 
-        public void help()
+        public void help(String args)
         {
-            Console.WriteLine("Current commands: ");
-            Console.WriteLine("time");
-            Console.WriteLine("date");
-            Console.WriteLine("cls");
-            Console.WriteLine("create");
-            Console.WriteLine("dir");
-            Console.WriteLine("out");
-            Console.WriteLine("vars");
-            Console.WriteLine("run");
-            Console.WriteLine("rm");
-            Console.WriteLine("clr");
-            Console.WriteLine("help");
-            Console.WriteLine("varCast");
-            Console.WriteLine("set");
-            Console.WriteLine("shared");
-            Console.WriteLine("Global variables may be input with: ");
-            Console.WriteLine("<VARNAME> = <ARITHMETIC EXPR>");
-            Console.WriteLine("<VARNAME> = <STRING EXPR");
+            if (args == "")
+            {
+                Console.WriteLine("Type help [command_name] to see the command's usage.");
+                Console.WriteLine("Current commands: ");
+                Console.WriteLine("time");
+                Console.WriteLine("date");
+                Console.WriteLine("cls");
+                Console.WriteLine("create");
+                Console.WriteLine("dir");
+                Console.WriteLine("out");
+                Console.WriteLine("vars");
+                Console.WriteLine("run");
+                Console.WriteLine("rm");
+                Console.WriteLine("clr");
+                Console.WriteLine("help");
+                Console.WriteLine("varCast");
+                Console.WriteLine("set");
+                Console.WriteLine("shared");
+                Console.WriteLine("Global variables may be input with: ");
+                Console.WriteLine("<VARNAME> = <ARITHMETIC EXPR>");
+                Console.WriteLine("<VARNAME> = <STRING EXPR>");
+            }
+            else
+            {
+                String[] temp = args.Split(new Char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                if (temp.Length != 1)
+                {
+                    Console.WriteLine("Invalid usage.");
+                    Console.WriteLine("Usage: help [command_name]");
+                    return;
+                }
+                if (args == "help")
+                {
+                    Console.WriteLine("Usage: help [command_name]");
+                }
+                else if (args == "time")
+                {
+                    Console.WriteLine("Usage: time [/t | /T] [HH:MM:SS]");
+                }
+                else if (args == "date")
+                {
+                    Console.WriteLine("Usage: date [/t | /T] [mm-dd-yy]");
+                }
+                else if (args == "cls")
+                {
+                    Console.WriteLine("Usage: cls");
+                }
+                else if (args == "create")
+                {
+                    Console.WriteLine("Usage: create <fname>.<ext>");
+                }
+                else if (args == "dir")
+                {
+                    Console.WriteLine("Usage: dir");
+                }
+                else if (args == "out")
+                {
+                    Console.WriteLine("Usage: out <varname>");
+                }
+                else if (args == "vars")
+                {
+                    Console.WriteLine("Usage: vars");
+                }
+                else if (args == "run")
+                {
+                    Console.WriteLine("Usage: run [all] <fname>.bat [<fname>.bat <fname>.bat ...]");
+                    Console.WriteLine("Create statments inside of batch files work by placing all text that is wanted in that file in the body of the batch statement. When doing this manually, use \"save \" as a terminator. Also note that files created inside batch files will automatically overwrite any files that already exist, so be careful!");
+                }
+                else if (args == "rm")
+                {
+                    Console.WriteLine("Usage: rm <fname>");
+                }
+                else if (args == "clr")
+                {
+                    Console.WriteLine("Usage: clr <varname>");
+                }
+                else if (args == "varCast")
+                {
+                    Console.WriteLine("Usage: varCast <varname>");
+                }
+                else if (args == "set")
+                {
+                    Console.WriteLine("Usage: set <VARNAME> = <ARITHMETIC EXPR>");
+                    Console.WriteLine("Usage: set <VARNAME> = <STRING EXPR>");
+                }
+                else if (args == "shared")
+                {
+                    Console.WriteLine("Usage: shared <VARNAME> = <ARITHMETIC EXPR>");
+                    Console.WriteLine("Usage: shared <VARNAME> = <STRING EXPR>");
+                }
+                else
+                {
+                    Console.WriteLine("Invalid command.");
+                }
+            }
         }
 
         public void create(String args)
@@ -442,7 +526,8 @@ namespace CosmosProj1
                     batchesToRun[i - 1] = f;
                     if (f == null || f.getExtension() != "bat")
                     {
-                        Console.WriteLine("Usage: run <Filename>.bat");
+                        Console.WriteLine("Error: file does not exist or is not a batch file.");
+                        Console.WriteLine("Usage: run [all] <fname>.bat [<fname>.bat <fname>.bat ...]");
                         return;
                     }
                     else if (runningContainsBatch(f.getFileName()))
@@ -480,12 +565,15 @@ namespace CosmosProj1
                         {
                             if (line == "save")
                             {
-                                File file = new File(batchTempFNames[j].Pop());
+                                String fnametemp = batchTempFNames[j].Pop();
+                                File file = new File(fnametemp);
                                 while (batchTempLines[j].Count != 0)
                                 {
-                                    //This keeps VMware from shitting itself
-                                    Console.Write("");
                                     file.writeLine(batchTempLines[j].Dequeue());
+                                }
+                                if (getFile(fnametemp) != null)
+                                {
+                                    FILESYS.RemoveAt(getFileIndex(fnametemp));
                                 }
                                 FILESYS.Add(file);
                             }
@@ -505,6 +593,13 @@ namespace CosmosProj1
                 {
                     removeBatch(batchesToRun[i].getFileName());
                 }
+                for (int i = 0; i < batchTempFNames.Length; i++)
+                {
+                    if (batchTempFNames[i].Count != 0)
+                    {
+                        Console.WriteLine("File " + batchesToRun[i].getFileName() + " has a missing save statment. File may not have run correctly.");
+                    }
+                }
             }
             else if (arguments.Length == 1)
             {
@@ -512,7 +607,8 @@ namespace CosmosProj1
                 File f = getFile(arguments[0]);
                 if (f == null || f.getExtension() != "bat")
                 {
-                    Console.WriteLine("Usage: run <Filename>.bat");
+                    Console.WriteLine("Error: file does not exist or is not a batch file.");
+                    Console.WriteLine("Usage: run [all] <fname>.bat [<fname>.bat <fname>.bat ...]");
                     return;
                 }
                 else if (runningContainsBatch(f.getFileName()))
@@ -540,12 +636,15 @@ namespace CosmosProj1
                     {
                         if (line == "save")
                         {
-                            File file = new File(tempFNames.Pop());
+                            String fnametemp = tempFNames.Pop();
+                            File file = new File(fnametemp);
                             while(tempLines.Count != 0)
                             {
-                                //This keeps VMware from shitting itself
-                                Console.Write("");
                                 file.writeLine(tempLines.Dequeue());
+                            }
+                            if (getFile(fnametemp) != null)
+                            {
+                                FILESYS.RemoveAt(getFileIndex(fnametemp));
                             }
                             FILESYS.Add(file);
                         }
@@ -560,6 +659,10 @@ namespace CosmosProj1
                     }
                 }
                 removeBatch(f.getFileName());
+                if (tempFNames.Count != 0)
+                {
+                    Console.WriteLine("File " + f.getFileName() + " has a missing save statment. File may not have run correctly.");
+                }
             }
             else
             {
