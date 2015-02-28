@@ -27,32 +27,8 @@ namespace CosmosProj1
             Console.WriteLine(" _|        _|        _|      _|_|    _|_|    _|_|_|");
             Console.WriteLine("FritOS: Freakin' Rad Input Terminal OS, version " + SYSTEM_VERSION);
             Console.WriteLine();
-            if (Cosmos.Core.CPU.GetAmountOfRAM() < 1000)
-            {
-                Console.WriteLine("Caution: FritOS may not work properly when the system ram is less than 1GB.");
-                Console.WriteLine("Don't blame me, blame Cosmos being dumb with memory and ADTs.");
-                Console.WriteLine();
-            }
             Console.WriteLine("Type \"help\" for a listing of all currently implemented commands.");
             Console.WriteLine("If the terminal does not accept inputs, restart it. I don't know why it doesn't always work.");
-            //Debug for run command, test files
-            File f = new File("f.bat");
-            f.writeLine("create a.bat");
-            f.writeLine("var1 = \"test\"");
-            f.writeLine("var2 = 4");
-            f.writeLine("create b.bat");
-            f.writeLine("var3 = 394");
-            f.writeLine("save ");
-            f.writeLine("var4 = $var1");
-            f.writeLine("save ");
-            f.writeLine("create c.bat");
-            f.writeLine("out var1");
-            f.writeLine("save ");
-            FILESYS.Add(f);
-            f = new File("e.bat");
-            f.writeLine("var1 = 8");
-            f.writeLine("out var1");
-            FILESYS.Add(f);
         }
 
         //Main loop of the OS, takes an input and executes it based on the command and arguments
