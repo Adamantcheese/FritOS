@@ -8,7 +8,7 @@ namespace CosmosProj1
 {
     public class Kernel : Sys.Kernel
     {
-        public const String SYSTEM_VERSION = "0.4.3";
+        public const String SYSTEM_VERSION = "0.4.5";
         public Date SYSTEM_DATE;
         public List<File> FILESYS;
         public List<Variable> GLOBAL_VARS;
@@ -27,33 +27,44 @@ namespace CosmosProj1
             Console.WriteLine(" _|        _|        _|      _|_|    _|_|    _|_|_|");
             Console.WriteLine("FritOS: Freakin' Rad Input Terminal OS, version " + SYSTEM_VERSION);
             Console.WriteLine();
+            if (Cosmos.Core.CPU.GetAmountOfRAM() < 1000)
+            {
+                Console.WriteLine("Caution: FritOS may not work properly when the system ram is less than 1GB.");
+                Console.WriteLine("Don't blame me, blame Cosmos being dumb with memory and ADTs.");
+                Console.WriteLine();
+            }
             Console.WriteLine("Type \"help\" for a listing of all currently implemented commands.");
+            Console.WriteLine("If the terminal does not accept inputs, restart it. I don't know why it doesn't always work.");
+            //Debug for run command, test files
             File f = new File("f.bat");
             f.writeLine("create a.bat");
-            f.writeLine("var1 = 1");
-            f.writeLine("save ");
+            f.writeLine("var1 = \"test\"");
+            f.writeLine("var2 = 4");
             f.writeLine("create b.bat");
-            f.writeLine("var2 = 2");
+            f.writeLine("var3 = 394");
+            f.writeLine("save ");
+            f.writeLine("var4 = $var1");
+            f.writeLine("save ");
+            f.writeLine("create c.bat");
+            f.writeLine("out var1");
             f.writeLine("save ");
             FILESYS.Add(f);
-            File d = new File("d.bat");
-            d.writeLine("create a.bat");
-            d.writeLine("var1 = 1");
-            d.writeLine("save ");
-            d.writeLine("create b.bat");
-            d.writeLine("var2 = 2");
-            FILESYS.Add(d);
+            f = new File("e.bat");
+            f.writeLine("var1 = 8");
+            f.writeLine("out var1");
+            FILESYS.Add(f);
         }
 
+        //Main loop of the OS, takes an input and executes it based on the command and arguments
         protected override void Run()
         {
-            //Print out a marker and get input
             Console.Write("usr:/ > ");
             String input = Console.ReadLine().Trim();
             String[] command = splitCommand(input);
             execute(command[0], command[1]);
         }
 
+        //A big ass switch basically for the function call
         public void execute(String func, String args)
         {
             //Based on the function, call the appropriate built in method with arguments
@@ -114,6 +125,10 @@ namespace CosmosProj1
             {
                 parseInput(args);
             }
+            else if (func == "prfile")
+            {
+                printFile(args);
+            }
             else
             {
                 String input = func + ' ' + args;
@@ -128,7 +143,7 @@ namespace CosmosProj1
             }
         }
 
-        //DOS time and date functions, functional except for setting time/date (prints out new time/date, but doesn't set it)
+        //DOS time function, doesn't actually set the time though
         public void time(String args)
         {
             //For the "/t" argument, print out the time in a human readable format and exit
@@ -220,6 +235,7 @@ namespace CosmosProj1
             return;
         }
 
+        //DOS date function, doesn't actually set the date though
         public void date(String args)
         {
             //Print out the current date if the arguments are "/t", "/T", or none
@@ -301,11 +317,13 @@ namespace CosmosProj1
             return;
         }
 
+        //Clears the console screen
         public void clearScreen()
         {
             Console.Clear();
         }
 
+        //Help function, able to get usages for all possible commands
         public void help(String args)
         {
             if (args == "")
@@ -326,6 +344,7 @@ namespace CosmosProj1
                 Console.WriteLine("varCast");
                 Console.WriteLine("set");
                 Console.WriteLine("shared");
+                Console.WriteLine("prfile");
                 Console.WriteLine("Global variables may be input with: ");
                 Console.WriteLine("<VARNAME> = <ARITHMETIC EXPR>");
                 Console.WriteLine("<VARNAME> = <STRING EXPR>");
@@ -398,6 +417,10 @@ namespace CosmosProj1
                     Console.WriteLine("Usage: shared <VARNAME> = <ARITHMETIC EXPR>");
                     Console.WriteLine("Usage: shared <VARNAME> = <STRING EXPR>");
                 }
+                else if (args == "prfile")
+                {
+                    Console.WriteLine("Usage: prfile <fname>");
+                }
                 else
                 {
                     Console.WriteLine("Invalid command.");
@@ -405,8 +428,10 @@ namespace CosmosProj1
             }
         }
 
+        //Function for creating files
         public void create(String args)
         {
+            //Check conditions of if it has an extension or already exists
             if (args.IndexOf('.') < 0)
             {
                 Console.WriteLine("Usage: create <Filename>.<Ext>");
@@ -414,6 +439,7 @@ namespace CosmosProj1
             }
             else if (fileExists(args))
             {
+                //The file already exists, make sure the user wants to overwrite the current file
                 Console.WriteLine("Error: file already exists. Overwrite? (Y/N)");
                 while (true)
                 {
@@ -433,6 +459,8 @@ namespace CosmosProj1
                     }
                 }
             }
+            //Make a new file, prompting on each line until the user types "save"
+            //Note that typing "save " doesn't save the file, and is used for batch files
             File f = new File(args);
             FILESYS.Add(f);
             int i = 1;
@@ -450,6 +478,7 @@ namespace CosmosProj1
             Console.WriteLine("*** File Saved ***");
         }
 
+        //Prints out all the current files in the filesystem
         public void dir(String args)
         {
             if (args.Length != 0)
@@ -473,6 +502,7 @@ namespace CosmosProj1
             Console.WriteLine("Total Files: " + FILESYS.Count);
         }
 
+        //Prints out the content of the given variable
         public void output(String args)
         {
             if (args.Split(' ').Length - 1 > 0)
@@ -480,23 +510,16 @@ namespace CosmosProj1
                 Console.WriteLine("Usage: out <VARNAME>");
                 return;
             }
-            Variable[] temp = new Variable[GLOBAL_VARS.Count];
-            GLOBAL_VARS.CopyTo(temp);
-            String output = "";
-            for(int i = 0; i < GLOBAL_VARS.Count; i++)
+            Variable v = getVar(args);
+            if (v == null)
             {
-                if (temp[i].getName() == args)
-                {
-                    output += temp[i].toString();
-                }
+                Console.WriteLine("No such variable exists.");
+                return;
             }
-            if (output.Length == 0)
-            {
-                output = "No such variable exists.";
-            }
-            Console.WriteLine(output);
+            Console.WriteLine(v.toString());
         }
 
+        //Prints out all the current variables in the filesystem
         public void vars()
         {
             Variable[] temp = new Variable[GLOBAL_VARS.Count];
@@ -510,15 +533,18 @@ namespace CosmosProj1
             }
         }
 
+        //Runs a given batch file or files
         public void run(String args)
         {
+            //Split up the arguments based on spaces to get what the arguments are
             String[] arguments = args.Split(new Char[] {' '}, StringSplitOptions.RemoveEmptyEntries);
+            //If the first arguments is "all" and we have at least 2 items, we are running multiple batch files
             if (arguments[0] == "all" && arguments.Length > 1)
             {
+                //Convert all the rest of the arguments into an array of File objects
+                //Also check that the arguments are properly formatted and that they aren't running
+                //Keep track of file lengths for later as well
                 File[] batchesToRun = new File[arguments.Length - 1];
-                //run all batches here
-                //check all arguments and also get the maximum line length of any batch files given
-                //also flag all batches as being run
                 int maximumLines = 0;
                 for (int i = 1; i < arguments.Length; i++)
                 {
@@ -536,63 +562,121 @@ namespace CosmosProj1
                         return;
                     }
                     maximumLines = f.getLineCount() > maximumLines ? f.getLineCount() : maximumLines;
+                    //Also add the arguments to the list of running batch files as well
                     RUNNING_BATCH_FILES.Add(f.getFileName());
                 }
-                //run all batch files
+                //Arrays of stacks for each batch file, in case that they use create inside of a batch file, we need to take care of that
+                //Also an array of stacks and array of ints for keeping track of line counts to properly make files
                 Stack<String>[] batchTempFNames = new Stack<String>[batchesToRun.Length];
-                Queue<String>[] batchTempLines = new Queue<String>[batchesToRun.Length];
+                Stack<String>[] batchTempLines = new Stack<String>[batchesToRun.Length];
+                Stack<Int32>[] batchTempLineCounts = new Stack<Int32>[batchesToRun.Length];
+                Int32[] tLineCounts = new Int32[batchesToRun.Length];
                 for (int i = 0; i < batchesToRun.Length; i++)
                 {
                     batchTempFNames[i] = new Stack<String>();
-                    batchTempLines[i] = new Queue<String>();
+                    batchTempLines[i] = new Stack<String>();
+                    batchTempLineCounts[i] = new Stack<Int32>();
+                    tLineCounts[i] = 0;
                 }
+                //Go through all the lines
                 for (int i = 0; i < maximumLines; i++)
                 {
+                    //In each batch file, one at a time; emulates preemption in the OS
                     for (int j = 0; j < batchesToRun.Length; j++)
                     {
+                        //Read the line from the file and trim excess
+                        //Trimming is used particularly because of the "save" command that create uses
                         String line = batchesToRun[j].readLine(i).Trim();
+                        //Split up the command and check it
                         String[] command = splitCommand(line);
+                        //If it's a create function we need to do some special crap
                         if (command[0] == "create")
                         {
+                            //Ensure the create command is properly formatted
                             if (command.Length != 2 || command[1].IndexOf('.') < 0)
                             {
                                 Console.WriteLine("Error: create takes a filename argument in the form <fname>.<ext>");
                                 return;
                             }
+                            //If we're reading a second create statement, push the linecount for this file so far
+                            if (batchTempFNames[j].Count > 0)
+                            {
+                                batchTempLines[j].Push(line);
+                                tLineCounts[j]++;
+                                batchTempLineCounts[j].Push(tLineCounts[j]);
+                                tLineCounts[j] = 0;
+                            }
+                            //Push it onto the stack of file names for that particular batch file
                             batchTempFNames[j].Push(command[1]);
                         }
+                        //If the stack of files names associated with this batch file is not empty, we don't execute it
+                        //Instead, we save the line temporarily, or save a file if the line is "save"
                         else if (batchTempFNames[j].Count > 0)
                         {
+                            //We've finished the create statement, write the file by popping the line queue the right number of lines so far
+                            //This is essentially matching the closest save to the last create
                             if (line == "save")
                             {
                                 String fnametemp = batchTempFNames[j].Pop();
                                 File file = new File(fnametemp);
-                                while (batchTempLines[j].Count != 0)
+                                Stack<String> temp = new Stack<String>();
+                                for (int k = 0; k < tLineCounts[j]; k++)
                                 {
-                                    file.writeLine(batchTempLines[j].Dequeue());
+                                    temp.Push(batchTempLines[j].Pop());
+                                }
+                                for (int k = 0; k < tLineCounts[j]; k++)
+                                {
+                                    String tempStr = temp.Pop();
+                                    file.writeLine(tempStr);
+                                    if (batchTempFNames[j].Count > 0)
+                                    {
+                                        batchTempLines[j].Push(tempStr);
+                                    }
+                                }
+                                if (runningContainsBatch(fnametemp))
+                                {
+                                    Console.WriteLine("A batch file is already running the file trying to be made, skipping.");
+                                    continue;
                                 }
                                 if (getFile(fnametemp) != null)
                                 {
                                     FILESYS.RemoveAt(getFileIndex(fnametemp));
                                 }
                                 FILESYS.Add(file);
+                                //Also readd the file we just wrote back to the stack if we still have filenames on the stack
+                                //Keep track of linecounts as well, so we write the right amount for each batch file
+                                //Note that nested batch files will be written, and outer batch files will be written with inner created files in them
+                                if (batchTempFNames[j].Count > 0)
+                                {
+                                    batchTempLines[j].Push(line + ' ');
+                                    tLineCounts[j]++;
+                                    tLineCounts[j] = tLineCounts[j] + batchTempLineCounts[j].Pop();
+                                }
+                                else
+                                {
+                                    tLineCounts[j] = 0;
+                                }
                             }
+                            //Save the line temporarily
                             else
                             {
-                                batchTempLines[j].Enqueue(line);
+                                batchTempLines[j].Push(line);
+                                tLineCounts[j]++;
                             }
                         }
+                        //It's a normal function, execute it
                         else
                         {
                             execute(command[0], command[1]);
                         }
                     }
                 }
-                //remove all batches from the running processes
+                //Remove all batches from the running list
                 for (int i = 0; i < batchesToRun.Length; i++)
                 {
                     removeBatch(batchesToRun[i].getFileName());
                 }
+                //Make sure to alert the user if the 
                 for (int i = 0; i < batchTempFNames.Length; i++)
                 {
                     if (batchTempFNames[i].Count != 0)
@@ -601,9 +685,10 @@ namespace CosmosProj1
                     }
                 }
             }
+            //Otherwise, if there is one and only one argument, we are running a single batch file
+            //See comments above, basically the same shit
             else if (arguments.Length == 1)
             {
-                //run a single batch here
                 File f = getFile(arguments[0]);
                 if (f == null || f.getExtension() != "bat")
                 {
@@ -618,7 +703,9 @@ namespace CosmosProj1
                 }
                 RUNNING_BATCH_FILES.Add(f.getFileName());
                 Stack<String> tempFNames = new Stack<String>();
-                Queue<String> tempLines = new Queue<String>();
+                Stack<String> tempLines = new Stack<String>();
+                Stack<Int32> tempLineCounts = new Stack<Int32>();
+                int tLineCount = 0;
                 for (int i = 0; i < f.getLineCount(); i++)
                 {
                     String line = f.readLine(i).Trim();
@@ -630,6 +717,13 @@ namespace CosmosProj1
                             Console.WriteLine("Error: create takes a filename argument in the form <fname>.<ext>");
                             return;
                         }
+                        if (tempFNames.Count > 0)
+                        {
+                            tempLines.Push(line);
+                            tLineCount++;
+                            tempLineCounts.Push(tLineCount);
+                            tLineCount = 0;
+                        }
                         tempFNames.Push(command[1]);
                     }
                     else if (tempFNames.Count > 0)
@@ -638,19 +732,45 @@ namespace CosmosProj1
                         {
                             String fnametemp = tempFNames.Pop();
                             File file = new File(fnametemp);
-                            while(tempLines.Count != 0)
+                            Stack<String> temp = new Stack<String>();
+                            for (int j = 0; j < tLineCount; j++)
                             {
-                                file.writeLine(tempLines.Dequeue());
+                                temp.Push(tempLines.Pop());
+                            }
+                            for (int j = 0; j < tLineCount; j++)
+                            {
+                                String tempStr = temp.Pop();
+                                file.writeLine(tempStr);
+                                if (tempFNames.Count > 0)
+                                {
+                                    tempLines.Push(tempStr);
+                                }
+                            }
+                            if (runningContainsBatch(fnametemp))
+                            {
+                                Console.WriteLine("A batch file is already running the file trying to be made, skipping.");
+                                continue;
                             }
                             if (getFile(fnametemp) != null)
                             {
                                 FILESYS.RemoveAt(getFileIndex(fnametemp));
                             }
                             FILESYS.Add(file);
+                            if (tempFNames.Count > 0)
+                            {
+                                tempLines.Push(line + ' ');
+                                tLineCount++;
+                                tLineCount = tLineCount + tempLineCounts.Pop();
+                            }
+                            else
+                            {
+                                tLineCount = 0;
+                            }
                         }
                         else
                         {
-                            tempLines.Enqueue(line);
+                            tempLines.Push(line);
+                            tLineCount++;
                         }
                     }
                     else
@@ -664,6 +784,7 @@ namespace CosmosProj1
                     Console.WriteLine("File " + f.getFileName() + " has a missing save statment. File may not have run correctly.");
                 }
             }
+            //Otherwise show the usage of the function, they fucked up
             else
             {
                 Console.WriteLine("Error: incorrect number of arguments given to run.");
@@ -672,9 +793,10 @@ namespace CosmosProj1
             }
         }
 
+        //Parses the given expression into a global variable
         public void parseInput(String input)
         {
-            //Cut the input into a function call and arguments
+            //Cut the input into a a variable name and expression
             int endIndex = 0;
             if (input.IndexOf('=') < 0)
             {
@@ -689,6 +811,7 @@ namespace CosmosProj1
             String varname = input.Substring(0, endIndex);
             String expr = input.Substring(varname.Length + 1).Trim();
             varname = varname.Trim();
+            //Make sure that we have both a variable name and expression, and the variable name is proper
             if (varname.Length == 0 || expr.Length == 0)
             {
                 Console.WriteLine("Error: Variable name doesn't exist or expression doesn't exist.");
@@ -700,12 +823,14 @@ namespace CosmosProj1
                 Console.WriteLine("Error: Variable name invalid, may only contain A-Z, a-z, 0-9, _, and $.");
                 return;
             }
+            //Evaluate the expression
             String val = evalExpr(expr);
             if (val == null)
             {
                 Console.WriteLine("Unable to parse expression.");
                 return;
             }
+            //Make the variable, replacing it if it already exists
             Variable v = null;
             if (val[0] == '\"')
             {
@@ -719,6 +844,7 @@ namespace CosmosProj1
             GLOBAL_VARS.Add(v);
         }
 
+        //Removes the given file from the filesystem
         public void rm(String args)
         {
             if (args.IndexOf('.') < 0 || args.Split(' ').Length - 1 > 0)
@@ -736,6 +862,7 @@ namespace CosmosProj1
             }
         }
 
+        //Removes the given variable from the filesystem
         public void clr(String args, bool verbose)
         {
             if (args.Split(' ').Length - 1 > 0)
@@ -758,6 +885,7 @@ namespace CosmosProj1
             }
         }
 
+        //Cast the variable to a string from int, or vice versa, if possible
         public void varCast(String args)
         {
             if (args.Split(' ').Length - 1 > 0)
@@ -817,14 +945,10 @@ namespace CosmosProj1
         //Helper for determining if a duplicate file is being made
         private bool fileExists(String fname)
         {
-            File[] temp = new File[FILESYS.Count];
-            FILESYS.CopyTo(temp);
-            for (int i = 0; i < FILESYS.Count; i++)
+            File f = getFile(fname);
+            if (f != null)
             {
-                if (temp[i].getFileName() == fname)
-                {
-                    return true;
-                }
+                return true;
             }
             return false;
         }
@@ -844,6 +968,7 @@ namespace CosmosProj1
             return -1;
         }
 
+        //Helper for getting files from the filesystem
         private File getFile(String fname)
         {
             File[] temp = new File[FILESYS.Count];
@@ -855,6 +980,7 @@ namespace CosmosProj1
             return temp[index];
         }
 
+        //Helper for getting variables from the filesystem
         private Variable getVar(String n)
         {
             Variable[] temp = new Variable[GLOBAL_VARS.Count];
@@ -869,6 +995,7 @@ namespace CosmosProj1
             return null;
         }
 
+        //The evaluation function for parsing expressions
         private String evalExpr(String expr)
         {
             List<Char> operations = new List<Char>();
@@ -896,9 +1023,11 @@ namespace CosmosProj1
             }
             //String only
             //A var should begin with $
-            //String should be enclosed in double quotations
+            //Strings should be enclosed in double quotations
+            //Split up the arguments based on those rules and get those arrays
             arguments = splitStrExpr(expr);
             Char[] ops = splitOpsStrExpr(expr);
+            //Make sure everything works and is good
             if (ops == null || arguments == null)
             {
                 Console.WriteLine("Invalid expression.");
@@ -917,6 +1046,7 @@ namespace CosmosProj1
                     return null;
                 }
             }
+            //Then evaluate the string expression
             return stringOp(arguments);
         }
 
@@ -1159,6 +1289,7 @@ namespace CosmosProj1
             return bigString + "\"";
         }
 
+        //Checking method to see if integers are properly formatted
         public static bool isValidInt(String s)
         {
             Char[] nums = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
@@ -1209,6 +1340,7 @@ namespace CosmosProj1
                 //Check all the stored variables.
                 if (args[i][0] == '$')
                 {
+                    //We already checked if variables are integers or not, so we don't need to check again
                     Variable v = getVar(args[i].Substring(1));
                     ret[i] = v.toString();
                 }
@@ -1220,6 +1352,7 @@ namespace CosmosProj1
             return ret;
         }
 
+        //A checking function to see if the current list of running batch files
         private bool runningContainsBatch(String fname)
         {
             String[] temp = new String[RUNNING_BATCH_FILES.Count];
@@ -1234,6 +1367,7 @@ namespace CosmosProj1
             return false;
         }
 
+        //Removes a batch file from the list of currently running batch files
         private void removeBatch(String fname)
         {
             String[] temp = new String[RUNNING_BATCH_FILES.Count];
@@ -1249,6 +1383,11 @@ namespace CosmosProj1
             RUNNING_BATCH_FILES = final;
         }
 
+        //Splits up a string expression based on the rules:
+        // 1) "string"
+        // 2) $variable
+        //Everything else is invalid
+        //Implementation is essentially a FSA with 4 states, represented by two booleans
         public static String[] splitStrExpr(String expr)
         {
             bool isString = false;
@@ -1307,6 +1446,7 @@ namespace CosmosProj1
                     }
                 }
             }
+            //If the last term read was a variable, we add it to the list as well
             if (isVar)
             {
                 output.Add(temp);
@@ -1316,6 +1456,7 @@ namespace CosmosProj1
             return outVars;
         }
 
+        //Splits up a string expression based on the same rules as above, but instead we grab the parts between string constants and variables
         private static Char[] splitOpsStrExpr(String expr)
         {
             bool isString = false;
@@ -1371,6 +1512,7 @@ namespace CosmosProj1
             return temp;
         }
 
+        //Checks if a variable name is valid or not based on a constant alphabet
         private static bool isValidVarName(String name)
         {
             Char[] valid = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'
@@ -1379,6 +1521,10 @@ namespace CosmosProj1
             , 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v'
             , 'w', 'x', 'y', 'z', '_', '$', '0', '1', '2', '3', '4', '5', '6'
             , '7', '8', '9'};
+            if (name == "create")
+            {
+                return false;
+            }
             for (int i = 0; i < name.Length; i++)
             {
                 bool yes = false;
@@ -1397,6 +1543,7 @@ namespace CosmosProj1
             return true;
         }
 
+        //Splits up a string into two parts, where the first part is before the first space and the second part is after it
         private static String[] splitCommand(String input)
         {
             String[] output = new String[2];
@@ -1413,6 +1560,24 @@ namespace CosmosProj1
             output[0] = input.Substring(0, endIndex + 1).Trim();
             output[1] = input.Substring(output[0].Length).Trim();
             return output;
+        }
+
+        public void printFile(String args)
+        {
+            if (args.IndexOf('.') < 0 || args.Split(' ').Length - 1 > 0)
+            {
+                Console.WriteLine("Usage: rm <Filename>.<Ext>");
+                return;
+            }
+            if (fileExists(args))
+            {
+                File f = getFile(args);
+                f.printFileContent();
+            }
+            else
+            {
+                Console.WriteLine("File doesn't exist!");
+            }
         }
     }
 }

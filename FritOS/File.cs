@@ -69,5 +69,15 @@ namespace CosmosProj1
             lines.CopyTo(temp);
             return temp[i];
         }
+
+        public void printFileContent()
+        {
+            String[] temp = new String[lines.Count];
+            lines.CopyTo(temp);
+            for (int i = 0; i < temp.Length; i++)
+            {
+                Console.WriteLine(temp[i]);
+            }
+        }
     }
 }
