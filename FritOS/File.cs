@@ -61,7 +61,7 @@ namespace CosmosProj1
 
         public String readLine(int i)
         {
-            if (i < 0 || i > lines.Count)
+            if (i < 0 || i > (lines.Count - 1))
             {
                 return "";
             }
