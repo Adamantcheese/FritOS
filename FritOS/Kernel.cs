@@ -13,6 +13,7 @@ namespace CosmosProj1
         public List<File> FILESYS;
         public List<Variable> GLOBAL_VARS;
         public List<String> RUNNING_BATCH_FILES;
+        public const String[] COMMANDS = { "time", "date", "cls", "create", "dir", "out", "vars", "run", "rm", "clr", "help", "varCast", "set", "shared", "prfile", };
 
         protected override void BeforeRun()
         {
@@ -248,7 +249,7 @@ namespace CosmosProj1
                     case 8:
                         char[] temp = args.ToCharArray();
                         bool error = false;
-                        for(int i = 0; i < temp.Length; i++)
+                        for (int i = 0; i < temp.Length; i++)
                         {
                             if (!isValidChar(temp[i], false))
                             {
@@ -264,9 +265,10 @@ namespace CosmosProj1
                             byte cent = Cosmos.Hardware.RTC.Century;
                             byte yr = (byte)(Int32.Parse(args.Substring(6, 2)));
                             //User entered invalid date check
-                            if (mon < 1 || mon > 12 || day < 1 || day > 31 || yr < 0 || yr > 99 
-                                || (day > 29 && mon == 2 && yr%4==0) || (day > 28 && mon == 2)
-                                || (day > 30 && (mon == 4 || mon == 6 || mon == 9 || mon == 11))) {
+                            if (mon < 1 || mon > 12 || day < 1 || day > 31 || yr < 0 || yr > 99
+                                || (day > 29 && mon == 2 && yr % 4 == 0) || (day > 28 && mon == 2)
+                                || (day > 30 && (mon == 4 || mon == 6 || mon == 9 || mon == 11)))
+                            {
                                 Console.WriteLine("The system cannot accept the date entered.");
                                 args = "";
                                 break;
@@ -306,21 +308,10 @@ namespace CosmosProj1
             {
                 Console.WriteLine("Type help [command_name] to see the command's usage.");
                 Console.WriteLine("Current commands: ");
-                Console.WriteLine("time");
-                Console.WriteLine("date");
-                Console.WriteLine("cls");
-                Console.WriteLine("create");
-                Console.WriteLine("dir");
-                Console.WriteLine("out");
-                Console.WriteLine("vars");
-                Console.WriteLine("run");
-                Console.WriteLine("rm");
-                Console.WriteLine("clr");
-                Console.WriteLine("help");
-                Console.WriteLine("varCast");
-                Console.WriteLine("set");
-                Console.WriteLine("shared");
-                Console.WriteLine("prfile");
+                for (int i = 0; i < COMMANDS.Length; i++)
+                {
+                    Console.WriteLine(COMMANDS[i]);
+                }
                 Console.WriteLine("Global variables may be input with: ");
                 Console.WriteLine("<VARNAME> = <ARITHMETIC EXPR>");
                 Console.WriteLine("<VARNAME> = <STRING EXPR>");
@@ -369,7 +360,24 @@ namespace CosmosProj1
                 else if (args == "run")
                 {
                     Console.WriteLine("Usage: run [all] <fname>.bat [<fname>.bat <fname>.bat ...]");
-                    Console.WriteLine("Create statments inside of batch files work by placing all text that is wanted in that file in the body of the batch statement. When doing this manually, use \"save \" as a terminator. Also note that files created inside batch files will automatically overwrite any files that already exist, so be careful!");
+                    Console.WriteLine("Create statments inside of batch files work by placing all text that is wanted in that file in the body of the batch statement.");
+                    Console.WriteLine("Nested batch files are automatically created when the parent file is saved.");
+                    Console.WriteLine("For example, a batch file contains this: ");
+                    Console.WriteLine();
+                    Console.WriteLine("create a.bat");
+                    Console.WriteLine("set var1 = 1");
+                    Console.WriteLine("create b.bat");
+                    Console.WriteLine("set var2 = 2");
+                    Console.WriteLine("save ");
+                    Console.WriteLine("out var1");
+                    Console.WriteLine("save ");
+                    Console.WriteLine();
+                    Console.WriteLine("When running the batch file, two batch files will be made.");
+                    Console.WriteLine("a.bat will contain everything from set var1 = 1 to out var1.");
+                    Console.WriteLine("b.bat will contain set var2 = 2.");
+                    Console.WriteLine();
+                    Console.WriteLine("When doing this manually, use \"save \" as a terminator.");
+                    Console.WriteLine("Also note that files created inside batch files will automatically overwrite any files that already exist, so be careful!");
                 }
                 else if (args == "rm")
                 {
@@ -466,7 +474,7 @@ namespace CosmosProj1
             Console.WriteLine("---------------------------------------------------");
             File[] temp = new File[FILESYS.Count];
             FILESYS.CopyTo(temp);
-            for(int i = 0; i < FILESYS.Count; i++)
+            for (int i = 0; i < FILESYS.Count; i++)
             {
                 File f = temp[i];
                 Console.Write(f.getFileName().PadRight(20) + ' ');
@@ -513,7 +521,7 @@ namespace CosmosProj1
         public void run(String args)
         {
             //Split up the arguments based on spaces to get what the arguments are
-            String[] arguments = args.Split(new Char[] {' '}, StringSplitOptions.RemoveEmptyEntries);
+            String[] arguments = args.Split(new Char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
             //If the first arguments is "all" and we have at least 2 items, we are running multiple batch files
             if (arguments[0] == "all" && arguments.Length > 1)
             {
@@ -856,7 +864,8 @@ namespace CosmosProj1
                     return;
                 }
             }
-            if (verbose) {
+            if (verbose)
+            {
                 Console.WriteLine("No such variable exists.");
             }
         }
@@ -950,7 +959,8 @@ namespace CosmosProj1
             File[] temp = new File[FILESYS.Count];
             FILESYS.CopyTo(temp);
             int index = getFileIndex(fname);
-            if (index == -1) {
+            if (index == -1)
+            {
                 return null;
             }
             return temp[index];
@@ -975,7 +985,7 @@ namespace CosmosProj1
         private String evalExpr(String expr)
         {
             List<Char> operations = new List<Char>();
-            Char[] delim = new Char[] {'+', '-', '*', '/', '&', '|', '^', ' '};
+            Char[] delim = new Char[] { '+', '-', '*', '/', '&', '|', '^', ' ' };
             //This line takes care of saving the arguments
             String[] arguments = expr.Split(delim, StringSplitOptions.RemoveEmptyEntries);
             //This loop takes care of saving the operations
@@ -1460,7 +1470,8 @@ namespace CosmosProj1
                 }
                 else if (!isString && !isVar)
                 {
-                    if(expr[i] == '\"') {
+                    if (expr[i] == '\"')
+                    {
                         isString = true;
                     }
                     else if (expr[i] == '$')
@@ -1538,6 +1549,7 @@ namespace CosmosProj1
             return output;
         }
 
+        //Prints the output of a given file
         public void printFile(String args)
         {
             if (args.IndexOf('.') < 0 || args.Split(' ').Length - 1 > 0)
