@@ -13,7 +13,7 @@ namespace CosmosProj1
         public List<File> FILESYS;
         public List<Variable> GLOBAL_VARS;
         public List<String> RUNNING_BATCH_FILES;
-        public const String[] COMMANDS = { "time", "date", "cls", "create", "dir", "out", "vars", "run", "rm", "clr", "help", "varCast", "set", "shared", "prfile", };
+        public String[] COMMANDS = { "time", "date", "cls", "create", "dir", "out", "vars", "run", "rm", "clr", "help", "varCast", "set", "shared", "prfile", };
 
         protected override void BeforeRun()
         {
@@ -359,9 +359,9 @@ namespace CosmosProj1
                 }
                 else if (args == "run")
                 {
-                    Console.WriteLine("Usage: run [all] <fname>.bat [<fname>.bat <fname>.bat ...]");
+                    Console.WriteLine("Usage: run [all] [--nest] <fname>.bat [<fname>.bat <fname>.bat ...]");
                     Console.WriteLine("Create statments inside of batch files work by placing all text that is wanted in that file in the body of the batch statement.");
-                    Console.WriteLine("Nested batch files are automatically created when the parent file is saved.");
+                    Console.WriteLine("Nested batch files are can be automatically created when the parent file is saved with the --nest flag.");
                     Console.WriteLine("For example, a batch file contains this: ");
                     Console.WriteLine();
                     Console.WriteLine("create a.bat");
@@ -520,24 +520,60 @@ namespace CosmosProj1
         //Runs a given batch file or files
         public void run(String args)
         {
+            bool allowNestedCreation = false;
+            bool multiple = false;
             //Split up the arguments based on spaces to get what the arguments are
             String[] arguments = args.Split(new Char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            //Set proper flags
+            if (arguments.Length > 1 && arguments[0] == "--nest")
+            {
+                allowNestedCreation = true;
+                multiple = false;
+                String[] temp = new String[arguments.Length - 1];
+                for (int i = 1; i < arguments.Length; i++)
+                {
+                    temp[i - 1] = arguments[i];
+                }
+                arguments = temp;
+            } 
+            else if (arguments.Length > 1 && arguments[0] == "all" && arguments[1] != "--nest") 
+            {
+                allowNestedCreation = false;
+                multiple = true;
+                String[] temp = new String[arguments.Length - 1];
+                for (int i = 1; i < arguments.Length; i++)
+                {
+                    temp[i - 1] = arguments[i];
+                }
+                arguments = temp;
+            }
+            else if (arguments.Length > 2 && arguments[0] == "all" && arguments[1] == "--nest")
+            {
+                allowNestedCreation = true;
+                multiple = true;
+                String[] temp = new String[arguments.Length - 2];
+                for (int i = 2; i < arguments.Length; i++)
+                {
+                    temp[i - 2] = arguments[i];
+                }
+                arguments = temp;
+            }
             //If the first arguments is "all" and we have at least 2 items, we are running multiple batch files
-            if (arguments[0] == "all" && arguments.Length > 1)
+            if (multiple)
             {
                 //Convert all the rest of the arguments into an array of File objects
                 //Also check that the arguments are properly formatted and that they aren't running
                 //Keep track of file lengths for later as well
-                File[] batchesToRun = new File[arguments.Length - 1];
+                File[] batchesToRun = new File[arguments.Length];
                 int maximumLines = 0;
-                for (int i = 1; i < arguments.Length; i++)
+                for (int i = 0; i < arguments.Length; i++)
                 {
                     File f = getFile(arguments[i]);
-                    batchesToRun[i - 1] = f;
+                    batchesToRun[i] = f;
                     if (f == null || f.getExtension() != "bat")
                     {
                         Console.WriteLine("Error: file does not exist or is not a batch file.");
-                        Console.WriteLine("Usage: run [all] <fname>.bat [<fname>.bat <fname>.bat ...]");
+                        Console.WriteLine("Usage: run [all] [--nest] <fname>.bat [<fname>.bat <fname>.bat ...]");
                         return;
                     }
                     else if (runningContainsBatch(f.getFileName()))
@@ -626,7 +662,13 @@ namespace CosmosProj1
                                 {
                                     FILESYS.RemoveAt(getFileIndex(fnametemp));
                                 }
-                                FILESYS.Add(file);
+                                if(allowNestedCreation && batchTempFNames[j].Count > 0) {
+                                    FILESYS.Add(file);
+                                }
+                                else if (batchTempFNames[j].Count == 0)
+                                {
+                                    FILESYS.Add(file);
+                                }
                                 //Also readd the file we just wrote back to the stack if we still have filenames on the stack
                                 //Keep track of linecounts as well, so we write the right amount for each batch file
                                 //Note that nested batch files will be written, and outer batch files will be written with inner created files in them
@@ -677,7 +719,7 @@ namespace CosmosProj1
                 if (f == null || f.getExtension() != "bat")
                 {
                     Console.WriteLine("Error: file does not exist or is not a batch file.");
-                    Console.WriteLine("Usage: run [all] <fname>.bat [<fname>.bat <fname>.bat ...]");
+                    Console.WriteLine("Usage: run [all] [--nest] <fname>.bat [<fname>.bat <fname>.bat ...]");
                     return;
                 }
                 else if (runningContainsBatch(f.getFileName()))
@@ -739,7 +781,14 @@ namespace CosmosProj1
                             {
                                 FILESYS.RemoveAt(getFileIndex(fnametemp));
                             }
-                            FILESYS.Add(file);
+                            if (allowNestedCreation && tempFNames.Count > 0)
+                            {
+                                FILESYS.Add(file);
+                            }
+                            else if (tempFNames.Count == 0)
+                            {
+                                FILESYS.Add(file);
+                            }
                             if (tempFNames.Count > 0)
                             {
                                 tempLines.Push(line + ' ');
@@ -772,7 +821,7 @@ namespace CosmosProj1
             else
             {
                 Console.WriteLine("Error: incorrect number of arguments given to run.");
-                Console.WriteLine("Usage: run [all] <fname>.bat [<fname>.bat <fname>.bat ...]");
+                Console.WriteLine("Usage: run [all] [--nest] <fname>.bat [<fname>.bat <fname>.bat ...]");
                 return;
             }
         }
