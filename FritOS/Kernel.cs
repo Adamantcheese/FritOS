@@ -9,7 +9,7 @@ namespace FritOS
     public class Kernel : Sys.Kernel
     {
         //System globals
-        public const String SYSTEM_VERSION = "0.4.6";
+        public const String SYSTEM_VERSION = "0.4.7";
         public Date SYSTEM_DATE;
         public List<File> FILESYS;
         public List<Variable> GLOBAL_VARS;
@@ -17,9 +17,6 @@ namespace FritOS
         //Run globals
         public Queue<ProcessBlock> RUNNING_BATCH_FILES;
         public bool batchNesting = false;
-
-        //Command list
-        public String[] COMMANDS = { "time", "date", "cls", "create", "dir", "out", "vars", "run", "rm", "clr", "help", "varCast", "set", "shared", "prfile", };
 
         protected override void BeforeRun()
         {
@@ -128,15 +125,7 @@ namespace FritOS
             }
             else
             {
-                String input = func + ' ' + args;
-                if (input.Contains("="))
-                {
-                    parseInput(input);
-                }
-                else
-                {
-                    Console.WriteLine("Invalid command.");
-                }
+                Console.WriteLine("Invalid command.");
             }
         }
 
@@ -324,6 +313,7 @@ namespace FritOS
         //Help function, able to get usages for all possible commands
         public void help(String args)
         {
+            String[] COMMANDS = { "time", "date", "cls", "create", "dir", "out", "vars", "run", "rm", "clr", "help", "varCast", "set", "shared", "prfile" };
             if (args == "")
             {
                 Console.WriteLine("Type help [command_name] to see the command's usage.");
@@ -332,9 +322,6 @@ namespace FritOS
                 {
                     Console.WriteLine(COMMANDS[i]);
                 }
-                Console.WriteLine("Global variables may be input with: ");
-                Console.WriteLine("<VARNAME> = <ARITHMETIC EXPR>");
-                Console.WriteLine("<VARNAME> = <STRING EXPR>");
             }
             else
             {
@@ -815,12 +802,17 @@ namespace FritOS
         //Cast the variable to a string from int, or vice versa, if possible
         public void varCast(String args)
         {
-            if (args.Split(' ').Length - 1 > 0)
+            if (args.Split(' ').Length - 1 > 0 || args.Length == 0)
             {
                 Console.WriteLine("Usage: varCast <VARNAME>");
                 return;
             }
             Variable v = getVar(args);
+            if (v == null)
+            {
+                Console.WriteLine("Variable doesn't exist!");
+                return;
+            }
             v.cast();
         }
 
