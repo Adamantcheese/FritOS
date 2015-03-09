@@ -4,23 +4,33 @@ using System.Text;
 using System.Reflection;
 using Sys = Cosmos.System;
 
-namespace CosmosProj1
+namespace FritOS
 {
     public class Kernel : Sys.Kernel
     {
-        public const String SYSTEM_VERSION = "0.4.5";
+        //System globals
+        public const String SYSTEM_VERSION = "0.4.6";
         public Date SYSTEM_DATE;
         public List<File> FILESYS;
         public List<Variable> GLOBAL_VARS;
-        public List<String> RUNNING_BATCH_FILES;
+
+        //Run globals
+        public Queue<ProcessBlock> RUNNING_BATCH_FILES;
+        public bool batchNesting = false;
+
+        //Command list
         public String[] COMMANDS = { "time", "date", "cls", "create", "dir", "out", "vars", "run", "rm", "clr", "help", "varCast", "set", "shared", "prfile", };
 
         protected override void BeforeRun()
         {
+            //INITALIZE SYSTEM GLOBALS
             SYSTEM_DATE = new Date();
             FILESYS = new List<File>();
             GLOBAL_VARS = new List<Variable>();
-            RUNNING_BATCH_FILES = new List<String>();
+
+            //INITIALIZE RUN GLOBALS
+            RUNNING_BATCH_FILES = new Queue<ProcessBlock>();
+
             Console.WriteLine(" _|_|_|_|            _|    _|        _|_|      _|_|_|");
             Console.WriteLine(" _|        _|  _|_|      _|_|_|_|  _|    _|  _|");
             Console.WriteLine(" _|_|_|    _|_|      _|    _|      _|    _|    _|_|");
@@ -30,6 +40,16 @@ namespace CosmosProj1
             Console.WriteLine();
             Console.WriteLine("Type \"help\" for a listing of all currently implemented commands.");
             Console.WriteLine("If the terminal does not accept inputs, restart it. I don't know why it doesn't always work.");
+
+            //DEBUG SECTION
+            File f = new File("f.bat");
+            f.writeLine("create a.bat");
+            f.writeLine("var1 = \"test\"");
+            f.writeLine("create b.bat");
+            f.writeLine("var2 = 4");
+            f.writeLine("save ");
+            f.writeLine("save ");
+            FILESYS.Add(f);
         }
 
         //Main loop of the OS, takes an input and executes it based on the command and arguments
@@ -362,6 +382,7 @@ namespace CosmosProj1
                     Console.WriteLine("Usage: run [all] [--nest] <fname>.bat [<fname>.bat <fname>.bat ...]");
                     Console.WriteLine("Create statments inside of batch files work by placing all text that is wanted in that file in the body of the batch statement.");
                     Console.WriteLine("Nested batch files are can be automatically created when the parent file is saved with the --nest flag.");
+                    Console.WriteLine("Nested run statements will inherit the nesting property of the initial run command.");
                     Console.WriteLine("For example, a batch file contains this: ");
                     Console.WriteLine();
                     Console.WriteLine("create a.bat");
@@ -520,14 +541,15 @@ namespace CosmosProj1
         //Runs a given batch file or files
         public void run(String args)
         {
-            bool allowNestedCreation = false;
+            batchNesting = false;
             bool multiple = false;
+            bool skipFlag = RUNNING_BATCH_FILES.Count > 0 ? true : false;
             //Split up the arguments based on spaces to get what the arguments are
             String[] arguments = args.Split(new Char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-            //Set proper flags
+            //Set proper flags and arguments
             if (arguments.Length > 1 && arguments[0] == "--nest")
             {
-                allowNestedCreation = true;
+                batchNesting = true;
                 multiple = false;
                 String[] temp = new String[arguments.Length - 1];
                 for (int i = 1; i < arguments.Length; i++)
@@ -538,7 +560,7 @@ namespace CosmosProj1
             } 
             else if (arguments.Length > 1 && arguments[0] == "all" && arguments[1] != "--nest") 
             {
-                allowNestedCreation = false;
+                batchNesting = false;
                 multiple = true;
                 String[] temp = new String[arguments.Length - 1];
                 for (int i = 1; i < arguments.Length; i++)
@@ -549,7 +571,7 @@ namespace CosmosProj1
             }
             else if (arguments.Length > 2 && arguments[0] == "all" && arguments[1] == "--nest")
             {
-                allowNestedCreation = true;
+                batchNesting = true;
                 multiple = true;
                 String[] temp = new String[arguments.Length - 2];
                 for (int i = 2; i < arguments.Length; i++)
@@ -558,263 +580,134 @@ namespace CosmosProj1
                 }
                 arguments = temp;
             }
-            //If the first arguments is "all" and we have at least 2 items, we are running multiple batch files
-            if (multiple)
+            //If we have the proper amount of arguments for run, we do it
+            if (multiple || arguments.Length == 1)
             {
                 //Convert all the rest of the arguments into an array of File objects
-                //Also check that the arguments are properly formatted and that they aren't running
-                //Keep track of file lengths for later as well
-                File[] batchesToRun = new File[arguments.Length];
-                int maximumLines = 0;
+                //Also check that the arguments are properly formatted
+                //Enqueue the files onto the run queue
                 for (int i = 0; i < arguments.Length; i++)
                 {
                     File f = getFile(arguments[i]);
-                    batchesToRun[i] = f;
                     if (f == null || f.getExtension() != "bat")
                     {
                         Console.WriteLine("Error: file does not exist or is not a batch file.");
                         Console.WriteLine("Usage: run [all] [--nest] <fname>.bat [<fname>.bat <fname>.bat ...]");
                         return;
                     }
-                    else if (runningContainsBatch(f.getFileName()))
-                    {
-                        Console.WriteLine("Error: Recursive and/or duplicate run call detected. Stopping to prevent possible infinite loop.");
-                        return;
-                    }
-                    maximumLines = f.getLineCount() > maximumLines ? f.getLineCount() : maximumLines;
-                    //Also add the arguments to the list of running batch files as well
-                    RUNNING_BATCH_FILES.Add(f.getFileName());
+                    RUNNING_BATCH_FILES.Enqueue(new ProcessBlock(f));
                 }
-                //Arrays of stacks for each batch file, in case that they use create inside of a batch file, we need to take care of that
-                //Also an array of stacks and array of ints for keeping track of line counts to properly make files
-                Stack<String>[] batchTempFNames = new Stack<String>[batchesToRun.Length];
-                Stack<String>[] batchTempLines = new Stack<String>[batchesToRun.Length];
-                Stack<Int32>[] batchTempLineCounts = new Stack<Int32>[batchesToRun.Length];
-                Int32[] tLineCounts = new Int32[batchesToRun.Length];
-                for (int i = 0; i < batchesToRun.Length; i++)
+                //If this is a nested run command, skip evaluation and let the main one take care of it
+                if (skipFlag)
                 {
-                    batchTempFNames[i] = new Stack<String>();
-                    batchTempLines[i] = new Stack<String>();
-                    batchTempLineCounts[i] = new Stack<Int32>();
-                    tLineCounts[i] = 0;
-                }
-                //Go through all the lines
-                for (int i = 0; i < maximumLines; i++)
-                {
-                    //In each batch file, one at a time; emulates preemption in the OS
-                    for (int j = 0; j < batchesToRun.Length; j++)
-                    {
-                        //Read the line from the file and trim excess
-                        //Trimming is used particularly because of the "save" command that create uses
-                        String line = batchesToRun[j].readLine(i).Trim();
-                        //Split up the command and check it
-                        String[] command = splitCommand(line);
-                        //If it's a create function we need to do some special crap
-                        if (command[0] == "create")
-                        {
-                            //Ensure the create command is properly formatted
-                            if (command.Length != 2 || command[1].IndexOf('.') < 0)
-                            {
-                                Console.WriteLine("Error: create takes a filename argument in the form <fname>.<ext>");
-                                return;
-                            }
-                            //If we're reading a second create statement, push the linecount for this file so far
-                            if (batchTempFNames[j].Count > 0)
-                            {
-                                batchTempLines[j].Push(line);
-                                tLineCounts[j]++;
-                                batchTempLineCounts[j].Push(tLineCounts[j]);
-                                tLineCounts[j] = 0;
-                            }
-                            //Push it onto the stack of file names for that particular batch file
-                            batchTempFNames[j].Push(command[1]);
-                        }
-                        //If the stack of files names associated with this batch file is not empty, we don't execute it
-                        //Instead, we save the line temporarily, or save a file if the line is "save"
-                        else if (batchTempFNames[j].Count > 0)
-                        {
-                            //We've finished the create statement, write the file by popping the line queue the right number of lines so far
-                            //This is essentially matching the closest save to the last create
-                            if (line == "save")
-                            {
-                                String fnametemp = batchTempFNames[j].Pop();
-                                File file = new File(fnametemp);
-                                Stack<String> temp = new Stack<String>();
-                                for (int k = 0; k < tLineCounts[j]; k++)
-                                {
-                                    temp.Push(batchTempLines[j].Pop());
-                                }
-                                for (int k = 0; k < tLineCounts[j]; k++)
-                                {
-                                    String tempStr = temp.Pop();
-                                    file.writeLine(tempStr);
-                                    if (batchTempFNames[j].Count > 0)
-                                    {
-                                        batchTempLines[j].Push(tempStr);
-                                    }
-                                }
-                                if (runningContainsBatch(fnametemp))
-                                {
-                                    Console.WriteLine("A batch file is already running the file trying to be made, skipping.");
-                                    continue;
-                                }
-                                if (getFile(fnametemp) != null)
-                                {
-                                    FILESYS.RemoveAt(getFileIndex(fnametemp));
-                                }
-                                if(allowNestedCreation && batchTempFNames[j].Count > 0) {
-                                    FILESYS.Add(file);
-                                }
-                                else if (batchTempFNames[j].Count == 0)
-                                {
-                                    FILESYS.Add(file);
-                                }
-                                //Also readd the file we just wrote back to the stack if we still have filenames on the stack
-                                //Keep track of linecounts as well, so we write the right amount for each batch file
-                                //Note that nested batch files will be written, and outer batch files will be written with inner created files in them
-                                if (batchTempFNames[j].Count > 0)
-                                {
-                                    batchTempLines[j].Push(line + ' ');
-                                    tLineCounts[j]++;
-                                    tLineCounts[j] = tLineCounts[j] + batchTempLineCounts[j].Pop();
-                                }
-                                else
-                                {
-                                    tLineCounts[j] = 0;
-                                }
-                            }
-                            //Save the line temporarily
-                            else
-                            {
-                                batchTempLines[j].Push(line);
-                                tLineCounts[j]++;
-                            }
-                        }
-                        //It's a normal function, execute it
-                        else
-                        {
-                            execute(command[0], command[1]);
-                        }
-                    }
-                }
-                //Remove all batches from the running list
-                for (int i = 0; i < batchesToRun.Length; i++)
-                {
-                    removeBatch(batchesToRun[i].getFileName());
-                }
-                //Make sure to alert the user if the 
-                for (int i = 0; i < batchTempFNames.Length; i++)
-                {
-                    if (batchTempFNames[i].Count != 0)
-                    {
-                        Console.WriteLine("File " + batchesToRun[i].getFileName() + " has a missing save statment. File may not have run correctly.");
-                    }
-                }
-            }
-            //Otherwise, if there is one and only one argument, we are running a single batch file
-            //See comments above, basically the same shit
-            else if (arguments.Length == 1)
-            {
-                File f = getFile(arguments[0]);
-                if (f == null || f.getExtension() != "bat")
-                {
-                    Console.WriteLine("Error: file does not exist or is not a batch file.");
-                    Console.WriteLine("Usage: run [all] [--nest] <fname>.bat [<fname>.bat <fname>.bat ...]");
                     return;
                 }
-                else if (runningContainsBatch(f.getFileName()))
+                //Run all the things on the run queue
+                while (RUNNING_BATCH_FILES.Count > 0)
                 {
-                    Console.WriteLine("Error: Recursive run call detected. Stopping to prevent possible infinite loop.");
-                    return;
-                }
-                RUNNING_BATCH_FILES.Add(f.getFileName());
-                Stack<String> tempFNames = new Stack<String>();
-                Stack<String> tempLines = new Stack<String>();
-                Stack<Int32> tempLineCounts = new Stack<Int32>();
-                int tLineCount = 0;
-                for (int i = 0; i < f.getLineCount(); i++)
-                {
-                    String line = f.readLine(i).Trim();
+                    //Grab the correct information off the run queue
+                    ProcessBlock p = RUNNING_BATCH_FILES.Dequeue();
+
+                    //Read the line from the file and trim excess
+                    //Trimming is used particularly because of the "save" command that create uses
+                    String line = p.processFile.readLine(p.currentLine).Trim();
+                    //If we've reached the end of the file, we go to the next one, as it has already been removed from the run queue
+                    if (line == "EOF")
+                    {
+                        //Show the user if the file that finished processing was improperly formatted
+                        if (p.tempFNames.Count != 0)
+                        {
+                            Console.WriteLine("File " + p.processFile.getFileName() + " has a missing save statment. File may not have run correctly.");
+                        }
+                        continue;
+                    }
+                    //Increment the current line for later
+                    p.currentLine++;
+                    //Split up the command and check it
                     String[] command = splitCommand(line);
+                    //If it's a create function we need to do some special crap
                     if (command[0] == "create")
                     {
+                        //Ensure the create command is properly formatted
                         if (command.Length != 2 || command[1].IndexOf('.') < 0)
                         {
                             Console.WriteLine("Error: create takes a filename argument in the form <fname>.<ext>");
                             return;
                         }
-                        if (tempFNames.Count > 0)
+                        //If we're reading a second create statement, push the linecount for this file so far
+                        if (p.tempFNames.Count > 0)
                         {
-                            tempLines.Push(line);
-                            tLineCount++;
-                            tempLineCounts.Push(tLineCount);
-                            tLineCount = 0;
+                            p.tempLines.Push(line);
+                            p.currentLineCount++;
+                            p.tempLineCounts.Push(p.currentLineCount);
+                            p.currentLineCount = 0;
                         }
-                        tempFNames.Push(command[1]);
+                        //Push it onto the stack of file names for that particular batch file
+                        p.tempFNames.Push(command[1]);
                     }
-                    else if (tempFNames.Count > 0)
+                    //If the stack of files names associated with this batch file is not empty, we don't execute it
+                    //Instead, we save the line temporarily, or save a file if the line is "save"
+                    else if (p.tempFNames.Count > 0)
                     {
+                        //We've finished the create statement, write the file by popping the line queue the right number of lines so far
+                        //This is essentially matching the closest save to the last create
                         if (line == "save")
                         {
-                            String fnametemp = tempFNames.Pop();
-                            File file = new File(fnametemp);
+                            String fnametemp = p.tempFNames.Pop();
+                            File f = new File(fnametemp);
                             Stack<String> temp = new Stack<String>();
-                            for (int j = 0; j < tLineCount; j++)
+                            for (int k = 0; k < p.currentLineCount; k++)
                             {
-                                temp.Push(tempLines.Pop());
+                                temp.Push(p.tempLines.Pop());
                             }
-                            for (int j = 0; j < tLineCount; j++)
+                            for (int k = 0; k < p.currentLineCount; k++)
                             {
                                 String tempStr = temp.Pop();
-                                file.writeLine(tempStr);
-                                if (tempFNames.Count > 0)
+                                f.writeLine(tempStr);
+                                if (p.tempFNames.Count > 0)
                                 {
-                                    tempLines.Push(tempStr);
+                                    p.tempLines.Push(tempStr);
                                 }
                             }
-                            if (runningContainsBatch(fnametemp))
-                            {
-                                Console.WriteLine("A batch file is already running the file trying to be made, skipping.");
-                                continue;
-                            }
+                            //Add the file to the filesystem, overwriting if needed
                             if (getFile(fnametemp) != null)
                             {
                                 FILESYS.RemoveAt(getFileIndex(fnametemp));
                             }
-                            if (allowNestedCreation && tempFNames.Count > 0)
+                            if (batchNesting && p.tempFNames.Count >= 0)
                             {
-                                FILESYS.Add(file);
+                                FILESYS.Add(f);
+                            } 
+                            else if (!batchNesting && p.tempFNames.Count == 0) 
+                            {
+                                FILESYS.Add(f);
                             }
-                            else if (tempFNames.Count == 0)
+                            //We also get the linecount back off the stack if necessary for future create statements
+                            if (p.tempFNames.Count > 0)
                             {
-                                FILESYS.Add(file);
-                            }
-                            if (tempFNames.Count > 0)
-                            {
-                                tempLines.Push(line + ' ');
-                                tLineCount++;
-                                tLineCount = tLineCount + tempLineCounts.Pop();
+                                p.tempLines.Push(line + ' ');
+                                p.currentLineCount++;
+                                p.currentLineCount += p.tempLineCounts.Pop();
                             }
                             else
                             {
-                                tLineCount = 0;
+                                p.currentLineCount = 0;
                             }
                         }
+                        //Save the line temporarily
                         else
                         {
-                            tempLines.Push(line);
-                            tLineCount++;
+                            p.tempLines.Push(line);
+                            p.currentLineCount++;
                         }
                     }
+                    //It's a normal function, execute it
                     else
                     {
                         execute(command[0], command[1]);
                     }
-                }
-                removeBatch(f.getFileName());
-                if (tempFNames.Count != 0)
-                {
-                    Console.WriteLine("File " + f.getFileName() + " has a missing save statment. File may not have run correctly.");
+                    //Enqueue the file back onto the stack, the file has not been finished processing
+                    RUNNING_BATCH_FILES.Enqueue(p);
                 }
             }
             //Otherwise show the usage of the function, they fucked up
@@ -1387,37 +1280,6 @@ namespace CosmosProj1
             return ret;
         }
 
-        //A checking function to see if the current list of running batch files
-        private bool runningContainsBatch(String fname)
-        {
-            String[] temp = new String[RUNNING_BATCH_FILES.Count];
-            RUNNING_BATCH_FILES.CopyTo(temp);
-            for (int i = 0; i < RUNNING_BATCH_FILES.Count; i++)
-            {
-                if (temp[i] == fname)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        //Removes a batch file from the list of currently running batch files
-        private void removeBatch(String fname)
-        {
-            String[] temp = new String[RUNNING_BATCH_FILES.Count];
-            RUNNING_BATCH_FILES.CopyTo(temp);
-            List<String> final = new List<String>();
-            for (int i = 0; i < RUNNING_BATCH_FILES.Count; i++)
-            {
-                if (temp[i] != fname)
-                {
-                    final.Add(temp[i]);
-                }
-            }
-            RUNNING_BATCH_FILES = final;
-        }
-
         //Splits up a string expression based on the rules:
         // 1) "string"
         // 2) $variable
@@ -1557,7 +1419,7 @@ namespace CosmosProj1
             , 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v'
             , 'w', 'x', 'y', 'z', '_', '$', '0', '1', '2', '3', '4', '5', '6'
             , '7', '8', '9'};
-            if (name == "create")
+            if (name == "create" || name == "save")
             {
                 return false;
             }

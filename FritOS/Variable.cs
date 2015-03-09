@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CosmosProj1
+namespace FritOS
 {
     public class Variable
     {

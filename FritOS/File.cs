@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CosmosProj1
+namespace FritOS
 {
     public class File
     {
@@ -63,7 +63,7 @@ namespace CosmosProj1
         {
             if (i < 0 || i > (lines.Count - 1))
             {
-                return "";
+                return "EOF";
             }
             String[] temp = new String[lines.Count];
             lines.CopyTo(temp);
