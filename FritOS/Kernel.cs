@@ -606,7 +606,14 @@ namespace FritOS
                         {
                             Console.WriteLine("File " + p.processFile.getFileName() + " has a missing save statment. File may not have run correctly.");
                         }
-                        continue;
+                        if (RUNNING_BATCH_FILES.Count == 0)
+                        {
+                            return;
+                        }
+                        else
+                        {
+                            continue;
+                        }
                     }
                     //Increment the current line for later
                     p.currentLine++;
