@@ -9,7 +9,7 @@ namespace FritOS
     public class Kernel : Sys.Kernel
     {
         //System globals
-        public const String SYSTEM_VERSION = "0.4.7";
+        public const String SYSTEM_VERSION = "0.4.8";
         public Date SYSTEM_DATE;
         public List<File> FILESYS;
         public List<Variable> GLOBAL_VARS;
@@ -38,7 +38,7 @@ namespace FritOS
             Console.WriteLine("Type \"help\" for a listing of all currently implemented commands.");
             Console.WriteLine("If the terminal does not accept inputs, restart it. I don't know why it doesn't always work.");
 
-            //DEBUG SECTION
+            /*DEBUG SECTION
             File f = new File("f.bat");
             f.writeLine("create a.bat");
             f.writeLine("var1 = \"test\"");
@@ -46,7 +46,7 @@ namespace FritOS
             f.writeLine("var2 = 4");
             f.writeLine("save ");
             f.writeLine("save ");
-            FILESYS.Add(f);
+            FILESYS.Add(f);*/
         }
 
         //Main loop of the OS, takes an input and executes it based on the command and arguments
