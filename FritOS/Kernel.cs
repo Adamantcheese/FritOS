@@ -125,7 +125,7 @@ namespace FritOS
             }
             else
             {
-                Console.WriteLine("Invalid command.");
+                Console.WriteLine("Incorrect choice.");
             }
         }
 
