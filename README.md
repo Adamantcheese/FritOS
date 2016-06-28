@@ -1,0 +1,1 @@
+An operating system based on Cosmos. Includes a pseudo-filesystem (flat structure) and expression evaluation, as well as system variables and program creation and execution. Also has recursion prevention so that one program cannot begin executing another copy of itself.
